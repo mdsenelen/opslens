@@ -1,0 +1,37 @@
+{
+  "name": "@opslens/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run",
+    "migrate:up": "node-pg-migrate up -m src/infra/db/migrations --tsconfig tsconfig.json",
+    "migrate:down": "node-pg-migrate down -m src/infra/db/migrations --tsconfig tsconfig.json",
+    "migrate:create": "node-pg-migrate create -m src/infra/db/migrations"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@opslens/shared-types": "workspace:*",
+    "fastify": "^5.12.0",
+    "fastify-type-provider-zod": "^7.0.0",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-boundaries": "^5.4.0",
+    "node-pg-migrate": "^9.0.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  }
+}
