@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",
     "test": "vitest run",
-    "migrate:up": "node-pg-migrate up -m src/infra/db/migrations --tsconfig tsconfig.json",
-    "migrate:down": "node-pg-migrate down -m src/infra/db/migrations --tsconfig tsconfig.json",
-    "migrate:create": "node-pg-migrate create -m src/infra/db/migrations"
+    "migrate:up": "node-pg-migrate up -m src/infra/db/migrations",
+    "migrate:down": "node-pg-migrate down -m src/infra/db/migrations",
+    "migrate:create": "node-pg-migrate create -m src/infra/db/migrations -j ts",
+    "seed": "tsx src/infra/db/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

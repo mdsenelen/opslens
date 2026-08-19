@@ -9,7 +9,7 @@ import { z } from "zod";
 export const pingResponseSchema = z.object({
   message: z.string(),
   service: z.literal("opslens-api"),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
 });
 
 export type PingResponse = z.infer<typeof pingResponseSchema>;
