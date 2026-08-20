@@ -1,0 +1,60 @@
+.page {
+  padding: 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.environment {
+  opacity: 0.6;
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.presets {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.presets button {
+  font: inherit;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d8dbe2;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.presets button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.thresholdNote {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-bottom: 0.5rem;
+}
+
+.deploymentList {
+  margin-top: 1.5rem;
+}
+
+.deploymentList ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .presets button {
+    border-color: #3a3d44;
+  }
+
+  .presets button:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

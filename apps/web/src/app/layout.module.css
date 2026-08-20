@@ -1,0 +1,22 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #d8dbe2;
+}
+
+.brand {
+  font-weight: 700;
+}
+
+.links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav {
+    border-bottom-color: #2a2d34;
+  }
+}

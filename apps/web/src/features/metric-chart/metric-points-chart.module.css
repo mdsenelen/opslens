@@ -1,0 +1,7 @@
+.canvasHost {
+  width: 100%;
+}
+
+.canvasHost :global(.u-legend) {
+  font-size: 0.8rem;
+}

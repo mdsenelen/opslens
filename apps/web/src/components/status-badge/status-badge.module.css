@@ -1,0 +1,56 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.firing,
+.critical {
+  background: #f6dede;
+  color: #8a2a1f;
+}
+
+.acknowledged,
+.warning {
+  background: #fbeecb;
+  color: #8a5a0a;
+}
+
+.resolved {
+  background: #dcefec;
+  color: #0a5852;
+}
+
+.info {
+  background: #e1e8f5;
+  color: #1f3d8a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .firing,
+  .critical {
+    background: #3a1a16;
+    color: #f2a89a;
+  }
+
+  .acknowledged,
+  .warning {
+    background: #3a2c0e;
+    color: #f0c778;
+  }
+
+  .resolved {
+    background: #0f2e2a;
+    color: #7fd6c8;
+  }
+
+  .info {
+    background: #182849;
+    color: #9db3ec;
+  }
+}

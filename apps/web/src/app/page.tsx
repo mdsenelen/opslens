@@ -1,33 +1,9 @@
-import { getPing } from "@/lib/api-client";
-import styles from "./page.module.css";
+import type { EnvironmentName } from "@opslens/shared-types";
+import { FleetOverview } from "@/features/fleet-overview/fleet-overview";
+import { getServices } from "@/lib/services-client";
 
-// Phase 0 verification page: proves web -> shared-types -> api round-trips
-// through one real HTTP call, typed end-to-end. Fleet Overview replaces
-// this route in Phase 3.
-export default async function Home() {
-  const result = await getPing();
-  const isError = "kind" in result;
-
-  return (
-    <div className={styles.page}>
-      <main className={styles.card}>
-        <span
-          className={`${styles.status} ${isError ? styles.err : styles.ok}`}
-        >
-          {isError ? `api: ${result.kind}` : "api: connected"}
-        </span>
-        <h1>OpsLens</h1>
-        <p>
-          {isError
-            ? `Could not reach the API — ${result.message}. Run "pnpm dev:api" in another terminal.`
-            : result.message}
-        </p>
-        {!isError && (
-          <p>
-            <code>{result.timestamp}</code>
-          </p>
-        )}
-      </main>
-    </div>
-  );
+export default async function Home({ searchParams }: { searchParams: Promise<{ q?: string; environment?: string }> }) {
+  const params = await searchParams;
+  const initialData = await getServices({ q: params.q, environment: params.environment as EnvironmentName | undefined });
+  return <FleetOverview initialData={initialData} />;
 }

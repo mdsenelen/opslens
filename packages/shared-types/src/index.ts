@@ -6,3 +6,5 @@ export * from "./metric-point";
 export * from "./alert-rule";
 export * from "./alert";
 export * from "./deployment";
+export * from "./api";
+export * from "./realtime";

@@ -1,0 +1,32 @@
+.page {
+  padding: 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.description {
+  opacity: 0.8;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.metricList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.metricName {
+  font-weight: 600;
+}
+
+.metricUnit {
+  opacity: 0.6;
+  font-size: 0.85rem;
+}
+
+.noEnv {
+  opacity: 0.6;
+  font-size: 0.85rem;
+}

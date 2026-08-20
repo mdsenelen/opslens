@@ -12,7 +12,11 @@ const boundariesConfig = {
   settings: {
     "boundaries/elements": [
       { type: "app", pattern: "src/app/**" },
-      { type: "feature", pattern: "src/features/*/**" },
+      // capture: ["family"] identifies which features/<family> folder a
+      // file belongs to, so the rule below can allow a feature's own files
+      // (container + chart component + CSS module, etc.) to reference each
+      // other while still blocking one feature from reaching into another.
+      { type: "feature", pattern: "src/features/*/**", capture: ["family"] },
       { type: "ui", pattern: "src/components/**" },
       { type: "lib", pattern: "src/lib/**" },
     ],
@@ -24,7 +28,7 @@ const boundariesConfig = {
         default: "disallow",
         rules: [
           { from: "app", allow: ["feature", "ui", "lib"] },
-          { from: "feature", allow: ["ui", "lib"] },
+          { from: "feature", allow: ["ui", "lib", ["feature", { family: "${from.family}" }]] },
           { from: "ui", allow: ["ui"] },
           { from: "lib", allow: ["lib"] },
         ],

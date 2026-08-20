@@ -1,0 +1,38 @@
+.loading {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f6dede;
+  color: #8a2a1f;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.error button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.empty {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    background: #3a1a16;
+    color: #f2a89a;
+  }
+}

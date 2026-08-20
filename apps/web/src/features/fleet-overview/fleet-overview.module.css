@@ -1,0 +1,16 @@
+.page {
+  padding: 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.alertCount {
+  color: #8a2a1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .alertCount {
+    color: #f2a89a;
+  }
+}
