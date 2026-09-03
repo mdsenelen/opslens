@@ -1,5 +1,6 @@
 import type { RealtimeEvent } from "@opslens/shared-types";
 import type { FastifyInstance } from "fastify";
+import { getWebOrigin } from "../../infra/web-origin";
 import type { EventBroadcaster } from "./event-broadcaster";
 
 /**
@@ -13,12 +14,18 @@ export async function registerRealtimeRoutes(app: FastifyInstance, broadcaster: 
     const { serviceId } = request.query as { serviceId?: string };
 
     // Long-lived response written directly to the socket — tell Fastify
-    // not to attempt its own reply lifecycle on top of this.
+    // not to attempt its own reply lifecycle on top of this. That also
+    // means @fastify/cors's onSend hook never runs for this route (it
+    // skips the whole hook chain), so the CORS header has to be set here
+    // explicitly — without it, EventSource in a browser silently fails
+    // every connection to an API on a different origin (i.e. exactly the
+    // documented local dev setup: web on :3000, api on :4000).
     reply.hijack();
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "Access-Control-Allow-Origin": getWebOrigin(),
     });
     // Flushes headers immediately so EventSource's connection opens without
     // waiting on the first real event, which may be minutes away.
