@@ -8,6 +8,7 @@ import {
 
 import { registerPingRoutes } from "./modules/ping/ping.routes";
 import { createDatabase, type Database } from "./infra/db/pool";
+import { getWebOrigin } from "./infra/web-origin";
 import { registerServiceRoutes } from "./modules/services/services.routes";
 import { registerMetricRoutes } from "./modules/metrics/metrics.routes";
 import { registerAlertRoutes } from "./modules/alerts/alerts.routes";
@@ -23,7 +24,7 @@ export function buildApp(options: { db?: Database } = {}) {
   app.setSerializerCompiler(serializerCompiler);
 
   app.register(cors, {
-    origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
+    origin: getWebOrigin(),
   });
 
   // Each module owns its own routes/service/repository (see repo blueprint,
