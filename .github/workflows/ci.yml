@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # lint/typecheck/test/build — the fast, DB-less checks per
+  # docs/spec/09-testing.md's CI section. `test` here excludes
+  # apps/api's *.integration.test.ts (see its package.json `test` script),
+  # which needs a real Postgres instance and runs in the job below instead.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # The integration suite exercises real SQL against real Postgres — the
+  # only layer that can catch data-shape bugs the fast suite's fake-DB
+  # tests can't reach (docs/spec/09-testing.md, "Priority 1"). The service
+  # container mirrors docker-compose.yml's image and credentials exactly,
+  # so DATABASE_URL here is the same one apps/api/.env.example documents.
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: opslens
+          POSTGRES_PASSWORD: opslens
+          POSTGRES_DB: opslens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opslens -d opslens"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://opslens:opslens@localhost:5432/opslens
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @opslens/api migrate:up
+      - run: pnpm --filter @opslens/api test:integration
+
+  # Playwright's webServer boots the API and web app itself once the
+  # database is migrated and seeded — see apps/web/playwright.config.ts.
+  # Scoped to the two flows docs/spec/09-testing.md names ("Priority 4"),
+  # not a broad per-screen suite.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: opslens
+          POSTGRES_PASSWORD: opslens
+          POSTGRES_DB: opslens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U opslens -d opslens"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://opslens:opslens@localhost:5432/opslens
+      NEXT_PUBLIC_OPSLENS_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @opslens/api migrate:up
+      - run: pnpm --filter @opslens/api seed
+      - run: pnpm --filter @opslens/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @opslens/web exec playwright test
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
