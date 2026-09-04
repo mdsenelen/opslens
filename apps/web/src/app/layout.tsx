@@ -27,7 +27,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <nav className={styles.nav}>
+        {/* Visually hidden until focused — the first Tab stop on every page,
+            per docs/spec/11-accessibility.md's keyboard-operability
+            requirement. Jumps straight past the nav to each page's content. */}
+        <a href="#main-content" className={styles.skipLink}>
+          Skip to main content
+        </a>
+        <nav className={styles.nav} aria-label="Primary">
           <Link href="/" className={styles.brand}>
             OpsLens
           </Link>
@@ -37,7 +43,7 @@ export default function RootLayout({
             <Link href="/deployments">Deployments</Link>
           </div>
         </nav>
-        {children}
+        <main id="main-content">{children}</main>
       </body>
     </html>
   );

@@ -1,12 +1,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* #1f5ade on white is ~5.9:1; the same color on the dark-mode background
+     below drops to ~3.6:1, so dark mode gets its own lighter value instead
+     of reusing this one — see the dark-mode block. */
+  --focus-ring: #1f5ade;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --focus-ring: #7aa2ff;
   }
 }
 
@@ -40,6 +45,20 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Baseline visible focus indicator for every interactive element that
+   doesn't already define its own (docs/spec/11-accessibility.md: "every
+   focusable element ... needs a visible focus indicator" — the Next.js
+   default ships with no such baseline). More specific component rules
+   (filter-bar, data-table) override this with the same token. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 @media (prefers-color-scheme: dark) {
