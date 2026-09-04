@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpsLens",
+  title: { default: "OpsLens", template: "%s · OpsLens" },
   description: "Real-time technical analytics for a small service fleet.",
 };
 

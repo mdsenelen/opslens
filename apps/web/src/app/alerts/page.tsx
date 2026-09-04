@@ -1,6 +1,10 @@
 import type { AlertSeverity, AlertStatus, EnvironmentName } from "@opslens/shared-types";
+import type { Metadata } from "next";
 import { AlertsList } from "@/features/alerts-list/alerts-list";
 import { getAlerts } from "@/lib/alerts-client";
+
+// See app/page.tsx's metadata comment.
+export const metadata: Metadata = { title: "Alerts" };
 
 export default async function AlertsPage({
   searchParams,

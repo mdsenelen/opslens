@@ -1,6 +1,10 @@
 import type { DeploymentStatus, EnvironmentName } from "@opslens/shared-types";
+import type { Metadata } from "next";
 import { DeploymentsList } from "@/features/deployments-list/deployments-list";
 import { getDeployments } from "@/lib/deployments-client";
+
+// See app/page.tsx's metadata comment.
+export const metadata: Metadata = { title: "Deployments" };
 
 export default async function DeploymentsPage({
   searchParams,

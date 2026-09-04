@@ -1,7 +1,12 @@
 import { environmentNameSchema, type EnvironmentName } from "@opslens/shared-types";
+import type { Metadata } from "next";
 import { MetricChart } from "@/features/metric-chart/metric-chart";
 import { getMetricPoints } from "@/lib/metrics-client";
 import { defaultTimeRange } from "@/lib/time-range";
+
+// A static title, not the fetched metric's name — see
+// app/alerts/[alertId]/page.tsx's metadata comment on why.
+export const metadata: Metadata = { title: "Metric chart" };
 
 const DEFAULT_WINDOW_HOURS = 24;
 
