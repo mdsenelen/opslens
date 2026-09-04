@@ -66,3 +66,17 @@ select:focus-visible,
     color-scheme: dark;
   }
 }
+
+/* The only transition in the app today is the skip link's reveal
+   (layout.module.css); this is a baseline for that and for whatever's
+   added next, not a response to any existing motion problem. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
