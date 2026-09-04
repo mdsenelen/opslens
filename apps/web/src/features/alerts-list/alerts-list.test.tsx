@@ -2,7 +2,7 @@ import type { Alert } from "@opslens/shared-types";
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAlerts, type AlertListItem, type AlertListResponse } from "@/lib/alerts-client";
-import { useRealtimeAlerts, type RealtimeConnectionState } from "@/lib/realtime-client";
+import { useConnectionAnnouncements, useRealtimeAlerts, type RealtimeConnectionState } from "@/lib/realtime-client";
 import { getServices } from "@/lib/services-client";
 import { renderWithNavigation } from "@/test/mock-navigation";
 import { AlertsList } from "./alerts-list";
@@ -23,11 +23,12 @@ vi.mock("@/lib/services-client", async (importOriginal) => {
   return { ...actual, getServices: vi.fn() };
 });
 
-vi.mock("@/lib/realtime-client", () => ({ useRealtimeAlerts: vi.fn() }));
+vi.mock("@/lib/realtime-client", () => ({ useRealtimeAlerts: vi.fn(), useConnectionAnnouncements: vi.fn() }));
 
 const mockedGetAlerts = vi.mocked(getAlerts);
 const mockedGetServices = vi.mocked(getServices);
 const mockedUseRealtimeAlerts = vi.mocked(useRealtimeAlerts);
+const mockedUseConnectionAnnouncements = vi.mocked(useConnectionAnnouncements);
 
 function makeAlert(overrides: Partial<AlertListItem> = {}): AlertListItem {
   return {
@@ -60,6 +61,7 @@ describe("AlertsList", () => {
     mockedGetAlerts.mockReset();
     mockedGetServices.mockReset().mockResolvedValue({ items: [], page: 1, limit: 100, total: 0 });
     mockedUseRealtimeAlerts.mockReset().mockReturnValue("open" as RealtimeConnectionState);
+    mockedUseConnectionAnnouncements.mockReset();
   });
 
   it("announces a status transition in the polite live region and refetches the filtered list", async () => {
@@ -74,7 +76,9 @@ describe("AlertsList", () => {
 
     act(() => emitChange({ ...makeAlert(), status: "resolved" }));
 
-    await waitFor(() => expect(screen.getByText("An alert is now resolved.")).toBeInTheDocument());
+    // useLiveAnnouncer throttles by DEFAULT_THROTTLE_MS (lib/use-live-announcer.ts)
+    // before flushing, so this needs more than waitFor's default 1000ms budget.
+    await waitFor(() => expect(screen.getByText("An alert is now resolved.")).toBeInTheDocument(), { timeout: 3000 });
     expect(mockedGetAlerts).toHaveBeenCalledTimes(1);
   });
 

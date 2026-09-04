@@ -66,3 +66,26 @@ export function useRealtimeAlerts(serviceId: string | undefined, onAlertChange: 
 
   return state;
 }
+
+/**
+ * Announces the connection-state transitions worth telling a screen-reader
+ * user about — reaching "lost" (the visual badge alerts-list.tsx and
+ * alert-detail.tsx render alongside this has no equivalent for a
+ * non-sighted user) and recovering from it. The initial connect and the
+ * interim "reconnecting" flaps are deliberately not announced, matching
+ * docs/spec/11-accessibility.md's caution against over-announcing
+ * background state ("recommend polite for MVP ... revisit only if user
+ * testing shows [it's warranted]"). Pairs with useLiveAnnouncer
+ * (lib/use-live-announcer.ts) so this coalesces with any alert-status
+ * announcement landing in the same throttle window.
+ */
+export function useConnectionAnnouncements(connectionState: RealtimeConnectionState, announce: (message: string) => void): void {
+  const previous = useRef(connectionState);
+  useEffect(() => {
+    if (previous.current === connectionState) return;
+    const prev = previous.current;
+    previous.current = connectionState;
+    if (connectionState === "lost") announce("Live updates paused.");
+    else if (connectionState === "open" && prev === "lost") announce("Live updates resumed.");
+  }, [connectionState, announce]);
+}

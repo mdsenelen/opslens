@@ -8,9 +8,10 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/resource-stat
 import { SeverityBadge, StatusBadge } from "@/components/status-badge/status-badge";
 import { describeApiError, isApiError, type ApiError } from "@/lib/api-client";
 import { getAlerts, type AlertListItem, type AlertListResponse } from "@/lib/alerts-client";
-import { useRealtimeAlerts } from "@/lib/realtime-client";
+import { useConnectionAnnouncements, useRealtimeAlerts } from "@/lib/realtime-client";
 import { getServices, type ServiceListItem } from "@/lib/services-client";
 import { useApiResource } from "@/lib/use-api-resource";
+import { useLiveAnnouncer } from "@/lib/use-live-announcer";
 import { useUrlState } from "@/lib/url-state";
 import styles from "./alerts-list.module.css";
 
@@ -46,15 +47,16 @@ export function AlertsList({ initialData }: { initialData: AlertListResponse | A
   // filtered list on notification" rather than patching one row in place —
   // simpler and correct at this dataset size. alert-detail.tsx (a single
   // alert, no filter-membership question) patches in place instead.
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const [liveAnnouncement, announce] = useLiveAnnouncer();
   const handleAlertChange = useCallback(
     (alert: Alert) => {
-      setLiveAnnouncement(`An alert is now ${alert.status}.`);
+      announce(`An alert is now ${alert.status}.`);
       retry();
     },
-    [retry],
+    [announce, retry],
   );
   const connectionState = useRealtimeAlerts(serviceId, handleAlertChange, retry);
+  useConnectionAnnouncements(connectionState, announce);
 
   const columns: Column<AlertListItem>[] = [
     { key: "serviceName", header: "Service", render: (a) => a.serviceName },

@@ -7,8 +7,9 @@ import { ErrorState, LoadingState } from "@/components/resource-status/resource-
 import { SeverityBadge, StatusBadge } from "@/components/status-badge/status-badge";
 import { describeApiError, type ApiError } from "@/lib/api-client";
 import { getAlert, type AlertDetail as AlertDetailData } from "@/lib/alerts-client";
-import { useRealtimeAlerts } from "@/lib/realtime-client";
+import { useConnectionAnnouncements, useRealtimeAlerts } from "@/lib/realtime-client";
 import { useApiResource } from "@/lib/use-api-resource";
+import { useLiveAnnouncer } from "@/lib/use-live-announcer";
 import styles from "./alert-detail.module.css";
 
 /**
@@ -24,13 +25,18 @@ export function AlertDetail({ alertId, initialData }: { alertId: string; initial
 
   const serviceId = state.status === "ready" ? state.data.serviceId : undefined;
   const [liveStatus, setLiveStatus] = useState<AlertDetailData["status"] | null>(null);
+  const [liveAnnouncement, announce] = useLiveAnnouncer();
   const handleAlertChange = useCallback(
     (alert: Alert) => {
-      if (alert.id === alertId) setLiveStatus(alert.status);
+      if (alert.id === alertId) {
+        setLiveStatus(alert.status);
+        announce(`An alert is now ${alert.status}.`);
+      }
     },
-    [alertId],
+    [alertId, announce],
   );
-  useRealtimeAlerts(serviceId, handleAlertChange, retry);
+  const connectionState = useRealtimeAlerts(serviceId, handleAlertChange, retry);
+  useConnectionAnnouncements(connectionState, announce);
 
   if (state.status === "loading") return <LoadingState label="Loading alert…" />;
   if (state.status === "error") return <ErrorState message={describeApiError(state.error)} onRetry={retry} />;
@@ -47,6 +53,22 @@ export function AlertDetail({ alertId, initialData }: { alertId: string; initial
         <h1>{alert.metricName}</h1>
         <StatusBadge status={status} />
         <SeverityBadge severity={alert.severity} />
+        {connectionState !== "open" && (
+          <span className={styles.connectionBadge}>
+            {connectionState === "connecting" && "Connecting to live updates…"}
+            {connectionState === "reconnecting" && "Reconnecting…"}
+            {connectionState === "lost" && "Live updates paused"}
+          </span>
+        )}
+      </div>
+
+      {/* Screen-reader-only live region for status transitions and
+          connection changes — polite, not assertive, so a background
+          change doesn't interrupt the user (docs/spec/11-accessibility.md).
+          Throttled via useLiveAnnouncer so a burst of events coalesces into
+          one utterance. */}
+      <div aria-live="polite" className={styles.srOnly}>
+        {liveAnnouncement}
       </div>
 
       <dl className={styles.details}>
