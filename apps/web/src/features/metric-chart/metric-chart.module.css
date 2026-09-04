@@ -37,6 +37,28 @@
   margin-bottom: 0.5rem;
 }
 
+.summary {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-bottom: 0.75rem;
+}
+
+.pointsTable {
+  margin-top: 1rem;
+}
+
+.pointsTable summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.tableScroll {
+  margin-top: 0.75rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
 .deploymentList {
   margin-top: 1.5rem;
 }
