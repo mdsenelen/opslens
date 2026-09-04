@@ -2,7 +2,7 @@
 
 Real-time technical analytics for a small service fleet. Full architecture rationale (why Fastify over NestJS, why SSE not WebSockets, why uPlot, schema, domain model, roadmap) lives in [`docs/spec/`](docs/spec/00-overview.md), the design blueprint; this README covers what's actually implemented so far and how to run it.
 
-## Status: Phase 6 — performance
+## Status: Phase 7 — accessibility
 
 What exists right now:
 
@@ -71,8 +71,8 @@ Four layers, per [docs/spec/09-testing.md](docs/spec/09-testing.md):
 
 - **`apps/api` unit/contract/validation** (`pnpm --filter @opslens/api test`) — pure `evaluateRule` logic, shared Zod schema/contract tests, and HTTP-level validation against a fake DB that throws if queried. No database needed.
 - **`apps/api` integration** (`pnpm --filter @opslens/api test:integration`) — the same routes' actual SQL against a real, migrated Postgres: pagination math, filter predicates, the alert-dedup unique constraint's idempotency, and the evaluator's recency-tolerance behavior against realistically-spaced points. Requires `pnpm db:up && pnpm --filter @opslens/api migrate:up` first.
-- **`apps/web` component tests** (`pnpm --filter @opslens/web test`, Vitest + React Testing Library) — the loading/error/empty/ready state machine every fetch-backed screen shares, filter-to-URL-state wiring, and the alert-status live region's `aria-live="polite"` announcement.
-- **`apps/web` E2E** (`pnpm --filter @opslens/web test:e2e`, Playwright) — scoped to exactly two flows: the primary regression-investigation journey (dashboard → service → metric chart → deployment correlation → alert detail) and the real-time reconnection behavior (the SSE connection drops, the UI shows a paused status, then recovers once it's back). Requires a migrated, *seeded* Postgres (`pnpm --filter @opslens/api seed`); `playwright.config.ts`'s `webServer` starts the API and web app itself.
+- **`apps/web` component tests** (`pnpm --filter @opslens/web test`, Vitest + React Testing Library) — the loading/error/empty/ready state machine every fetch-backed screen shares, filter-to-URL-state wiring, the alert-status live region's `aria-live="polite"` announcement (now throttled — see Accessibility below), focus management, and the non-color status/count cues.
+- **`apps/web` E2E** (`pnpm --filter @opslens/web test:e2e`, Playwright) — the primary regression-investigation journey (dashboard → service → metric chart → deployment correlation → alert detail), the real-time reconnection behavior (the SSE connection drops, the UI shows a paused status, then recovers once it's back), the same primary journey again keyboard-only (Tab/Enter, no mouse), and an `@axe-core/playwright` scan of all six screens. Requires a migrated, *seeded* Postgres (`pnpm --filter @opslens/api seed`); `playwright.config.ts`'s `webServer` starts the API and web app itself.
 
 CI (`.github/workflows/ci.yml`) runs the fast `apps/api`/`apps/web` suites, lint, typecheck, and build on every push; the Postgres-backed integration and E2E suites run in their own jobs against a `services:` Postgres matching `docker-compose.yml`'s image and credentials.
 
@@ -81,3 +81,11 @@ The E2E reconnection flow caught a real bug during this pass: `GET /api/realtime
 ## Performance
 
 Measured, not assumed — see [docs/performance-report.md](docs/performance-report.md) for the full write-up (method, before/after numbers, device) against every question [docs/spec/10-performance.md](docs/spec/10-performance.md) posed. Summary: the services environment-filter query does a full `metric_points` scan whose cost was confirmed to grow with table size (6ms at the real seed's 13,840 rows, up to 223ms at a synthetic 100x) but is trivial at actual project scale, so no schema change was made; the metric chart's uPlot instance is now provably never remounted by a real-time update (a regression test, not a one-off profiling session); a real production build confirmed the 55.6KB uPlot chunk loads on exactly the metric-chart route and no other; and table virtualization remains unnecessary given every list endpoint's hard 100-row pagination cap.
+
+## Accessibility
+
+Implements [docs/spec/11-accessibility.md](docs/spec/11-accessibility.md) across the whole app, not just the fleet table/alert list/filters it was originally scoped to — see [docs/accessibility-report.md](docs/accessibility-report.md) for the full write-up. No WCAG conformance claim and no invented score; what follows is what was built and what was actually run against it.
+
+Built this phase: a shared, contrast-checked focus-ring token with a global `:focus-visible` baseline (every link/button now has a visible focus indicator, not just filter inputs and sort buttons); a skip link with a real focusable target, `<main>`, and per-route page titles; `ErrorState` focusing itself on mount; a non-color icon on the fleet table's alert count; throttled/coalesced live-region announcements for alert-status *and* connection-state changes (`lib/use-live-announcer.ts`) where only unthrottled alert-status announcements existed before; a text summary and a collapsible accessible `<table>` alternative to the metric chart's uPlot canvas; and a `prefers-reduced-motion` baseline.
+
+Verified for real: `pnpm --filter @opslens/web lint`/`typecheck`/`test` (32 tests), `pnpm --filter @opslens/api lint`/`typecheck`/`test` (11 tests) and `test:integration` (7 tests, against a real Postgres), the full `pnpm --filter @opslens/web test:e2e` suite (7 tests — the two pre-existing E2E flows, a new keyboard-only pass through the primary journey with no `.click()`, and an `@axe-core/playwright` scan of all six screens against WCAG 2 A/AA rules), and `pnpm build`. The axe scan caught two real issues, both fixed rather than suppressed (a non-keyboard-reachable scrollable region, and a live-region/visible-badge text collision) — details in the report.
