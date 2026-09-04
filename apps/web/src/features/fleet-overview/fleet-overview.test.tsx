@@ -53,6 +53,18 @@ describe("FleetOverview", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
+  it("pairs a nonzero alert count with an aria-hidden icon, not color alone (docs/spec/11-accessibility.md)", () => {
+    renderWithNavigation(<FleetOverview initialData={response([service({ activeAlertCount: 3 })])} />);
+    const cell = screen.getByRole("cell", { name: "3" });
+    expect(cell.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+  });
+
+  it("renders a zero alert count as plain text with no icon badge", () => {
+    renderWithNavigation(<FleetOverview initialData={response([service({ activeAlertCount: 0 })])} />);
+    const cell = screen.getByRole("cell", { name: "0" });
+    expect(cell.querySelector('[aria-hidden="true"]')).not.toBeInTheDocument();
+  });
+
   it("renders the empty state when the filtered list has no items", () => {
     renderWithNavigation(<FleetOverview initialData={response([])} />);
     expect(screen.getByText("No services match these filters.")).toBeInTheDocument();

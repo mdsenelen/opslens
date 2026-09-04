@@ -82,6 +82,24 @@ describe("AlertsList", () => {
     expect(mockedGetAlerts).toHaveBeenCalledTimes(1);
   });
 
+  it("coalesces multiple rapid transitions into a single throttled announcement", async () => {
+    let emitChange!: (alert: Alert) => void;
+    mockedUseRealtimeAlerts.mockImplementation((_serviceId, onAlertChange) => {
+      emitChange = onAlertChange;
+      return "open";
+    });
+    mockedGetAlerts.mockResolvedValue(response([makeAlert()]));
+
+    renderWithNavigation(<AlertsList initialData={response([makeAlert()])} />);
+
+    act(() => {
+      emitChange({ ...makeAlert(), status: "resolved" });
+      emitChange({ ...makeAlert(), status: "firing" });
+    });
+
+    await waitFor(() => expect(screen.getByText("An alert is now resolved. An alert is now firing.")).toBeInTheDocument(), { timeout: 3000 });
+  });
+
   it("shows a non-color connection-status indicator once the live connection is lost", () => {
     mockedUseRealtimeAlerts.mockReturnValue("lost");
     renderWithNavigation(<AlertsList initialData={response([makeAlert()])} />);
