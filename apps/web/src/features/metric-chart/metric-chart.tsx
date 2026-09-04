@@ -189,7 +189,13 @@ export function MetricChart({
           <details className={styles.pointsTable} onToggle={(e) => setTableOpen(e.currentTarget.open)}>
             <summary>Show data as a table ({state.data.points.length} points)</summary>
             {tableOpen && (
-              <div className={styles.tableScroll}>
+              // tabIndex/role/aria-label: axe's scrollable-region-focusable
+              // rule (WCAG 2.1.1/2.1.3) — a div with overflow-y: auto and no
+              // other focusable content inside has no keyboard way to
+              // scroll it. This gets the same :focus-visible outline as
+              // every other focusable element (globals.css's
+              // [tabindex]:focus-visible rule).
+              <div className={styles.tableScroll} tabIndex={0} role="region" aria-label={`${metricName ?? "Metric"} data table, scrollable`}>
                 <DataTable
                   columns={pointColumns}
                   rows={[...state.data.points].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())}

@@ -29,7 +29,7 @@ describe("useConnectionAnnouncements", () => {
     rerender({ state: "reconnecting" });
     rerender({ state: "lost" });
 
-    expect(announce).toHaveBeenCalledExactlyOnceWith("Live updates paused.");
+    expect(announce).toHaveBeenCalledExactlyOnceWith("Live updates are paused; the page still shows the last data it received.");
   });
 
   it("does not announce the interim reconnecting state on its own", () => {
@@ -51,6 +51,6 @@ describe("useConnectionAnnouncements", () => {
 
     rerender({ state: "open" });
 
-    expect(announce).toHaveBeenCalledExactlyOnceWith("Live updates resumed.");
+    expect(announce).toHaveBeenCalledExactlyOnceWith("Live updates have resumed.");
   });
 });

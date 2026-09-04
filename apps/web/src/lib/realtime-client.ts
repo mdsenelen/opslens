@@ -85,7 +85,14 @@ export function useConnectionAnnouncements(connectionState: RealtimeConnectionSt
     if (previous.current === connectionState) return;
     const prev = previous.current;
     previous.current = connectionState;
-    if (connectionState === "lost") announce("Live updates paused.");
-    else if (connectionState === "open" && prev === "lost") announce("Live updates resumed.");
+    // Deliberately worded differently from the visible "Live updates
+    // paused" badge (not just "Live updates paused." + a period) — the two
+    // are otherwise an exact substring match of each other, which is both a
+    // redundant double-announcement for a screen-reader user reading past
+    // the badge and, concretely, what broke e2e/realtime-reconnection.spec.ts's
+    // getByText("Live updates paused") (Playwright's default substring
+    // match) into a strict-mode ambiguity between the badge and this region.
+    if (connectionState === "lost") announce("Live updates are paused; the page still shows the last data it received.");
+    else if (connectionState === "open" && prev === "lost") announce("Live updates have resumed.");
   }, [connectionState, announce]);
 }
