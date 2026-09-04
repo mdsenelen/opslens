@@ -43,7 +43,13 @@ export default function RootLayout({
             <Link href="/deployments">Deployments</Link>
           </div>
         </nav>
-        <main id="main-content">{children}</main>
+        {/* tabIndex={-1} — a plain <main> isn't natively focusable, so
+            without it the skip link above would move the URL hash but not
+            actually move keyboard focus. Not added to the normal Tab
+            order; only reachable via the skip link's programmatic focus(). */}
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
       </body>
     </html>
   );
