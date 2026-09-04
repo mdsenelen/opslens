@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { DataTable, type Column } from "@/components/data-table/data-table";
 import { FilterBar, FilterField } from "@/components/filter-bar/filter-bar";
 import { EmptyState, ErrorState, LoadingState } from "@/components/resource-status/resource-status";
+import { AlertCountBadge } from "@/components/status-badge/status-badge";
 import { describeApiError, type ApiError } from "@/lib/api-client";
 import { getServices, type ServiceListItem, type ServiceListResponse } from "@/lib/services-client";
 import { useApiResource } from "@/lib/use-api-resource";
@@ -31,7 +32,7 @@ export function FleetOverview({ initialData }: { initialData: ServiceListRespons
     {
       key: "activeAlertCount",
       header: "Active alerts",
-      render: (s) => (s.activeAlertCount > 0 ? <strong className={styles.alertCount}>{s.activeAlertCount}</strong> : "0"),
+      render: (s) => <AlertCountBadge count={s.activeAlertCount} />,
     },
     { key: "description", header: "Description", render: (s) => s.description ?? "—" },
   ];

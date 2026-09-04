@@ -44,3 +44,18 @@ export function SeverityBadge({ severity }: { severity: AlertSeverity }) {
     </span>
   );
 }
+
+// The fleet table's activeAlertCount (docs/spec/11-accessibility.md: "a
+// service row with a nonzero activeAlertCount needs the same color-
+// independent treatment as above — an icon/badge with text, not a
+// red-tinted row as the only cue"). Reuses .critical's color pair — a
+// service with active alerts is exactly as urgent as a critical alert.
+export function AlertCountBadge({ count }: { count: number }) {
+  if (count === 0) return <>0</>;
+  return (
+    <span className={`${styles.badge} ${styles.critical}`}>
+      <span aria-hidden="true">⚠</span>
+      {count}
+    </span>
+  );
+}
