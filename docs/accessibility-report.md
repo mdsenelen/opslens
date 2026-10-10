@@ -102,3 +102,46 @@ Every command below was run for real against this repo, not assumed:
   above (Testing Library's accessible-name/role assertions, axe) are what
   was actually run; nothing here should be read as "tested with a real
   screen reader."
+
+## Phase 9 follow-up: the visual redesign
+
+Phase 9 replaced the app's ad-hoc colors with a design token set (one light
+block and one dark block in `apps/web/src/app/globals.css`) and rebuilt every
+screen on shared layout primitives. That touched every color on every
+screen, so the checks above were re-run rather than assumed to still hold.
+
+**What the redesign added for accessibility:**
+
+- `NavLink` sets `aria-current="page"` on the current section; the visual
+  underline is a second signal, not the only one.
+- The metric chart's time-range presets expose their pressed state with
+  `aria-pressed`, shown visually by a raised surface and heavier weight.
+- The chart legend names each overlay by line style (solid series, dashed
+  deployment, dotted threshold) as well as by color. Deployment markers
+  carry their version as a text label on the canvas.
+- `LiveIndicator` shows connection state with text and a dot that changes
+  shape (solid, ring, hollow), not just color. It is deliberately not a
+  live region itself; the existing throttled region still does the
+  announcing.
+- Deployment statuses got the same icon and word treatment as alert badges.
+
+**Closing a gap this report named above.** Phase 7 said the wider palette
+"was not individually re-measured". Axe's `color-contrast` rule is part of
+the WCAG 2 AA tag set the E2E scans already use, so running those scans in
+both color schemes now checks text contrast on every scanned screen. The
+accessibility spec now runs its four flows once per scheme
+(`test.use({ colorScheme })`).
+
+**What was run, and the result:**
+
+| Command | Result |
+|---|---|
+| `pnpm lint` / `pnpm typecheck` / `pnpm test` (root) | pass (web: 9 files, 36 tests; api: 4 files, 11 tests) |
+| `pnpm --filter @opslens/api test:integration` (scratch Postgres) | pass (4 files, 9 tests) |
+| `pnpm --filter @opslens/web test:e2e` against a production build | pass (11 tests, including 8 axe flows: 4 per color scheme) |
+| One-off axe scan (WCAG 2.0/2.1 A and AA tags) of all six routes, light and dark, at 1440px and 390px wide | 24 scans, 0 violations |
+| `pnpm build` (root) | pass |
+
+The 390px scans are a one-off check from this phase and are not part of CI.
+The same limits as above still apply: no screen-reader session was run, and
+nothing here is a conformance claim.
