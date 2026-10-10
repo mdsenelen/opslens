@@ -10,7 +10,7 @@ import { DeploymentStatusBadge } from "@/components/status-badge/status-badge";
 import { getAlert, getAlerts } from "@/lib/alerts-client";
 import { describeApiError, isApiError, type ApiError } from "@/lib/api-client";
 import { getDeployments, type DeploymentListItem } from "@/lib/deployments-client";
-import { getMetricPoints, type MetricPointsResponse } from "@/lib/metrics-client";
+import { getMetricPoints, METRIC_POINT_LIMIT, type MetricPointsResponse } from "@/lib/metrics-client";
 import { useApiResource } from "@/lib/use-api-resource";
 import { useUrlState } from "@/lib/url-state";
 import { MetricPointsChart, type Threshold } from "./metric-points-chart";
@@ -94,7 +94,7 @@ export function MetricChart({
   // re-sorted ascending below before rendering, since the chart needs
   // chronological order regardless of fetch order.
   const fetcher = useCallback(
-    () => getMetricPoints(metricId, { environment, start, end, order: "desc" }),
+    () => getMetricPoints(metricId, { environment, start, end, order: "desc", limit: METRIC_POINT_LIMIT }),
     [metricId, environment, start, end],
   );
   const [state, retry] = useApiResource(fetcher, initialData);
@@ -221,6 +221,14 @@ export function MetricChart({
               unit={state.data.metric.unit}
             />
             <MetricSummary points={state.data.points} unit={state.data.metric.unit} />
+            {state.data.points.length >= METRIC_POINT_LIMIT && (
+              // Said out loud rather than leaving the axis to imply the whole
+              // window is shown: at the cap, the oldest part of the range is
+              // missing (points are fetched newest-first).
+              <p className={styles.truncated}>
+                Showing the most recent {METRIC_POINT_LIMIT} points. The start of this window is not shown; pick a shorter range to see all of it.
+              </p>
+            )}
             {/* Same series as the canvas chart above, as a real <table>,
                 lazy-rendered (see tableOpen above) since opening it can mean
                 up to 1,000 rows. */}

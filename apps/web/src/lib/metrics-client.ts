@@ -30,6 +30,12 @@ export type MetricPointsQuery = {
   order?: "asc" | "desc";
 };
 
+// The API's per-request cap on metric points (metricPointsQuerySchema).
+// Callers pass it explicitly: left unset, the API's default of 500 silently
+// cut a "24h" window down to its most recent ~8 hours at production's
+// one-point-per-minute cadence.
+export const METRIC_POINT_LIMIT = 1000;
+
 const metricListResponseSchema = paginatedSchema(metricSchema);
 export type MetricListResponse = z.infer<typeof metricListResponseSchema>;
 

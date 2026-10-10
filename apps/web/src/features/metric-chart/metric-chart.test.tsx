@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAlert, getAlerts } from "@/lib/alerts-client";
 import { getDeployments } from "@/lib/deployments-client";
-import { getMetricPoints, type MetricPointsResponse } from "@/lib/metrics-client";
+import { getMetricPoints, METRIC_POINT_LIMIT, type MetricPointsResponse } from "@/lib/metrics-client";
 import { MetricChart } from "./metric-chart";
 
 vi.mock("next/navigation", () => ({
@@ -102,5 +102,22 @@ describe("MetricChart", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(points.length + 1);
     expect(within(table).getByRole("cell", { name: "1" })).toBeInTheDocument();
     expect(within(table).getByRole("cell", { name: "9" })).toBeInTheDocument();
+  });
+
+  it("says so when the window holds more points than one request returns, and stays quiet otherwise", () => {
+    const props = {
+      serviceId: "33333333-3333-3333-3333-333333333333",
+      metricId: "11111111-1111-1111-1111-111111111111",
+      environment: "production" as const,
+      start: "2026-08-24T00:00:00.000Z",
+      end: "2026-08-25T00:00:00.000Z",
+    };
+    const { unmount } = render(<MetricChart {...props} initialData={response(points)} />);
+    expect(screen.queryByText(/Showing the most recent/)).not.toBeInTheDocument();
+    unmount();
+
+    const full = Array.from({ length: METRIC_POINT_LIMIT }, (_, i) => point(new Date(Date.UTC(2026, 7, 24, 0, i)).toISOString(), 1));
+    render(<MetricChart {...props} initialData={response(full)} />);
+    expect(screen.getByText(/Showing the most recent 1000 points/)).toBeInTheDocument();
   });
 });

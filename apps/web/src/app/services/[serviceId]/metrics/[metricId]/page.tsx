@@ -1,7 +1,7 @@
 import { environmentNameSchema, type EnvironmentName } from "@opslens/shared-types";
 import type { Metadata } from "next";
 import { MetricChart } from "@/features/metric-chart/metric-chart";
-import { getMetricPoints } from "@/lib/metrics-client";
+import { getMetricPoints, METRIC_POINT_LIMIT } from "@/lib/metrics-client";
 import { defaultTimeRange } from "@/lib/time-range";
 
 // A static title, not the fetched metric's name — see
@@ -30,7 +30,7 @@ export default async function MetricPage({
   // order: "desc" so the initial server-rendered fetch matches the client
   // fetcher in metric-chart.tsx — see that file's comment on why ascending
   // (the API's default) would truncate away the most recent points.
-  const initialData = await getMetricPoints(metricId, { environment, start, end, order: "desc" });
+  const initialData = await getMetricPoints(metricId, { environment, start, end, order: "desc", limit: METRIC_POINT_LIMIT });
 
   return <MetricChart serviceId={serviceId} metricId={metricId} environment={environment} start={start} end={end} initialData={initialData} />;
 }
