@@ -1,10 +1,12 @@
 "use client";
 
 import type { EnvironmentName, MetricPoint } from "@opslens/shared-types";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, type Column } from "@/components/data-table/data-table";
+import { PageHeader } from "@/components/page-header/page-header";
+import { Panel } from "@/components/panel/panel";
 import { EmptyState, ErrorState, LoadingState } from "@/components/resource-status/resource-status";
+import { DeploymentStatusBadge } from "@/components/status-badge/status-badge";
 import { getAlert, getAlerts } from "@/lib/alerts-client";
 import { describeApiError, isApiError, type ApiError } from "@/lib/api-client";
 import { getDeployments, type DeploymentListItem } from "@/lib/deployments-client";
@@ -49,7 +51,11 @@ function MetricSummary({ points, unit }: { points: MetricPoint[]; unit: string }
   return (
     <p className={styles.summary}>
       {count} points from {new Date(earliest.ts).toLocaleString()} to {new Date(latest.ts).toLocaleString()}, ranging {min.value}–{max.value} {unit}. Latest
-      value: <strong>{latest.value} {unit}</strong>.
+      value:{" "}
+      <strong>
+        {latest.value} {unit}
+      </strong>
+      .
     </p>
   );
 }
@@ -87,7 +93,10 @@ export function MetricChart({
   // recent several hours — exactly where a regression is. Points are
   // re-sorted ascending below before rendering, since the chart needs
   // chronological order regardless of fetch order.
-  const fetcher = useCallback(() => getMetricPoints(metricId, { environment, start, end, order: "desc" }), [metricId, environment, start, end]);
+  const fetcher = useCallback(
+    () => getMetricPoints(metricId, { environment, start, end, order: "desc" }),
+    [metricId, environment, start, end],
+  );
   const [state, retry] = useApiResource(fetcher, initialData);
 
   const [deployments, setDeployments] = useState<DeploymentListItem[]>([]);
@@ -135,6 +144,11 @@ export function MetricChart({
   // screen-reader user actually opens the <details>.
   const [tableOpen, setTableOpen] = useState(false);
   const unit = state.status === "ready" ? state.data.metric.unit : "";
+  // Which preset (if any) the current window corresponds to, so the
+  // segmented control can show it as pressed. Derived from the URL-backed
+  // start/end, not stored separately, so it can never disagree with them.
+  const windowHours = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 3600_000);
+
   const pointColumns: Column<MetricPoint>[] = [
     { key: "ts", header: "Timestamp", render: (p) => new Date(p.ts).toLocaleString() },
     { key: "value", header: `Value (${unit})`, render: (p) => String(p.value) },
@@ -142,85 +156,113 @@ export function MetricChart({
 
   return (
     <div className={styles.page}>
-      <p>
-        <Link href={`/services/${serviceId}`}>← Back to service</Link>
-      </p>
-      <h1>
-        {metricName ?? "Metric"} <span className={styles.environment}>({environment})</span>
-      </h1>
+      <PageHeader
+        back={{ href: `/services/${serviceId}`, label: "Back to service" }}
+        title={<code className={styles.title}>{metricName ?? "Metric"}</code>}
+        meta={
+          <>
+            <span className={styles.envChip}>{environment}</span>
+            {state.status === "ready" && <span>Unit: {state.data.metric.unit}</span>}
+          </>
+        }
+        actions={
+          <div className={styles.presets} role="group" aria-label="Time range">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                aria-pressed={windowHours === preset.hours}
+                onClick={() => {
+                  const now = Date.now();
+                  set({ start: new Date(now - preset.hours * 3600_000).toISOString(), end: new Date(now).toISOString() });
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
-      <div className={styles.presets} role="group" aria-label="Time range">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            onClick={() => {
-              const now = Date.now();
-              set({ start: new Date(now - preset.hours * 3600_000).toISOString(), end: new Date(now).toISOString() });
-            }}
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-
-      {state.status === "loading" && <LoadingState label="Loading metric data…" />}
-      {state.status === "error" && <ErrorState message={describeApiError(state.error)} onRetry={retry} />}
-      {state.status === "ready" && state.data.points.length === 0 && (
-        <EmptyState message={`No data points for this metric in ${environment} in the selected window.`} />
-      )}
-      {state.status === "ready" && state.data.points.length > 0 && (
-        <>
-          {displayedThreshold && (
-            <p className={styles.thresholdNote}>
-              Alert threshold: <strong>{displayedThreshold.label}</strong> {state.data.metric.unit}
-            </p>
-          )}
-          <MetricSummary points={state.data.points} unit={state.data.metric.unit} />
-          <MetricPointsChart
-            points={state.data.points.map((p) => ({ ts: new Date(p.ts).getTime(), value: p.value })).sort((a, b) => a.ts - b.ts)}
-            deployments={deployments.map((d) => ({ id: d.id, ts: new Date(d.deployedAt).getTime(), version: d.version, status: d.status }))}
-            threshold={displayedThreshold}
-            unit={state.data.metric.unit}
-          />
-          {/* Same series as the canvas chart above, as a real <table> —
-              lazy-rendered (see tableOpen above) since opening it can mean
-              up to 1,000 rows. */}
-          <details className={styles.pointsTable} onToggle={(e) => setTableOpen(e.currentTarget.open)}>
-            <summary>Show data as a table ({state.data.points.length} points)</summary>
-            {tableOpen && (
-              // tabIndex/role/aria-label: axe's scrollable-region-focusable
-              // rule (WCAG 2.1.1/2.1.3) — a div with overflow-y: auto and no
-              // other focusable content inside has no keyboard way to
-              // scroll it. This gets the same :focus-visible outline as
-              // every other focusable element (globals.css's
-              // [tabindex]:focus-visible rule).
-              <div className={styles.tableScroll} tabIndex={0} role="region" aria-label={`${metricName ?? "Metric"} data table, scrollable`}>
-                <DataTable
-                  columns={pointColumns}
-                  rows={[...state.data.points].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())}
-                  caption={`${metricName ?? "Metric"} in ${environment}, chronological`}
-                />
-              </div>
-            )}
-          </details>
-        </>
-      )}
+      <Panel>
+        {state.status === "loading" && <LoadingState label="Loading metric data…" />}
+        {state.status === "error" && <ErrorState message={describeApiError(state.error)} onRetry={retry} />}
+        {state.status === "ready" && state.data.points.length === 0 && (
+          <EmptyState message={`No data points for this metric in ${environment} in the selected window.`} />
+        )}
+        {state.status === "ready" && state.data.points.length > 0 && (
+          <>
+            {/* The legend doubles as the text form of each overlay: the
+                line styles are described in words, so solid/dashed/dotted
+                carry the distinction rather than color alone. */}
+            <ul className={styles.legend}>
+              <li>
+                <span aria-hidden="true" className={`${styles.swatch} ${styles.swatchSeries}`} />
+                {state.data.metric.name} <span className={styles.legendHint}>(solid line)</span>
+              </li>
+              {deployments.length > 0 && (
+                <li>
+                  <span aria-hidden="true" className={`${styles.swatch} ${styles.swatchDeploy}`} />
+                  Deployment <span className={styles.legendHint}>(dashed vertical line)</span>
+                </li>
+              )}
+              {displayedThreshold && (
+                <li>
+                  <span aria-hidden="true" className={`${styles.swatch} ${styles.swatchThreshold}`} />
+                  Alert threshold: <strong>{displayedThreshold.label}</strong> {state.data.metric.unit}{" "}
+                  <span className={styles.legendHint}>(dotted horizontal line)</span>
+                </li>
+              )}
+            </ul>
+            <MetricPointsChart
+              points={state.data.points.map((p) => ({ ts: new Date(p.ts).getTime(), value: p.value })).sort((a, b) => a.ts - b.ts)}
+              deployments={deployments.map((d) => ({ id: d.id, ts: new Date(d.deployedAt).getTime(), version: d.version, status: d.status }))}
+              threshold={displayedThreshold}
+              unit={state.data.metric.unit}
+            />
+            <MetricSummary points={state.data.points} unit={state.data.metric.unit} />
+            {/* Same series as the canvas chart above, as a real <table>,
+                lazy-rendered (see tableOpen above) since opening it can mean
+                up to 1,000 rows. */}
+            <details className={styles.pointsTable} onToggle={(e) => setTableOpen(e.currentTarget.open)}>
+              <summary>Show data as a table ({state.data.points.length} points)</summary>
+              {tableOpen && (
+                // tabIndex/role/aria-label: axe's scrollable-region-focusable
+                // rule (WCAG 2.1.1/2.1.3): a div with overflow-y: auto and no
+                // other focusable content inside has no keyboard way to
+                // scroll it. This gets the same :focus-visible outline as
+                // every other focusable element (globals.css's
+                // [tabindex]:focus-visible rule).
+                <div className={styles.tableScroll} tabIndex={0} role="region" aria-label={`${metricName ?? "Metric"} data table, scrollable`}>
+                  <DataTable
+                    columns={pointColumns}
+                    rows={[...state.data.points].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())}
+                    caption={`${metricName ?? "Metric"} in ${environment}, chronological`}
+                  />
+                </div>
+              )}
+            </details>
+          </>
+        )}
+      </Panel>
 
       {deployments.length > 0 && (
-        <div className={styles.deploymentList}>
-          <h2>Deployments in this window</h2>
+        <Panel title="Deployments in this window" description="Each one is drawn on the chart as a dashed line at the moment it shipped.">
           {/* Deployment markers are drawn on the chart's canvas, which isn't
-              screen-reader-navigable — this list is the same data as plain
+              screen-reader-navigable; this list is the same data as plain
               text, per docs/spec/11-accessibility.md. */}
-          <ul>
+          <ul className={styles.deploymentList}>
             {deployments.map((d) => (
               <li key={d.id}>
-                <strong>{d.version}</strong> — {d.status} — {new Date(d.deployedAt).toLocaleString()}
+                <code className={styles.version}>{d.version}</code>
+                <DeploymentStatusBadge status={d.status} />
+                <time dateTime={d.deployedAt} className={styles.deployedAt}>
+                  {new Date(d.deployedAt).toLocaleString()}
+                </time>
               </li>
             ))}
           </ul>
-        </div>
+        </Panel>
       )}
     </div>
   );

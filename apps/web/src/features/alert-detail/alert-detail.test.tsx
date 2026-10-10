@@ -88,4 +88,16 @@ describe("AlertDetail", () => {
     expect(screen.getByText("Firing")).toBeInTheDocument();
     expect(screen.queryByText("An alert is now resolved.")).not.toBeInTheDocument();
   });
+
+  it("links to the metric that fired, in its environment, in a window centred on the alert", () => {
+    const alert = makeAlert();
+    render(<AlertDetail alertId={alert.id} initialData={alert} />);
+
+    const href = screen.getByRole("link", { name: /Open the metric chart/ }).getAttribute("href")!;
+    const url = new URL(href, "http://localhost");
+    expect(url.pathname).toBe(`/services/${alert.serviceId}/metrics/${alert.rule.metricId}`);
+    expect(url.searchParams.get("environment")).toBe("production");
+    expect(url.searchParams.get("start")).toBe("2026-08-23T21:00:00.000Z");
+    expect(url.searchParams.get("end")).toBe("2026-08-24T03:00:00.000Z");
+  });
 });
