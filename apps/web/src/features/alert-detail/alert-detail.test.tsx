@@ -30,7 +30,7 @@ function makeAlert(overrides: Partial<AlertDetailData> = {}): AlertDetailData {
     metricName: "error_rate_pct",
     serviceName: "payments-api",
     environmentName: "production",
-    rule: { comparator: "gt", threshold: 5, durationSeconds: 180 },
+    rule: { metricId: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", comparator: "gt", threshold: 5, durationSeconds: 180 },
     ...overrides,
   };
 }
