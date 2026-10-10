@@ -136,6 +136,7 @@ Integration tests truncate the database they point at, so run them against a
 scratch database rather than the one you seeded for the demo. They run
 serially by design (see `apps/api/vitest.integration.config.ts`).
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and the
-build on every push, plus the integration and E2E suites against a
-`postgres:16-alpine` service container.
+CI (`.github/workflows/ci.yml`) is configured to run lint, typecheck, unit
+tests and the build on every pull request and every push to `main`, plus the
+integration and E2E suites against a `postgres:16-alpine` service container.
+Phone-width axe scans were a one-off local check and are not part of CI.

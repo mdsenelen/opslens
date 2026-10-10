@@ -18,8 +18,8 @@ tracing, no query language, no multi-tenant auth.
 ## The demo path
 
 The seed builds one deterministic scenario every time it runs. Payments API's
-error rate in production jumps from about 2% to about 9% a few minutes after
-`v2.14.0` ships, crosses the alert's `> 5%` rule, and an alert opens.
+error rate in production jumps from under half a percent to about 9% four
+minutes after `v2.14.0` ships, crosses the alert's `> 5%` rule, and an alert opens.
 
 1. **Fleet overview.** Four services; Payments API is the one with an active alert.
 2. **Service detail.** Its metrics, each with the environments it has data in.
@@ -94,9 +94,14 @@ are recorded in the linked reports.
   rows, so there is nothing for it to solve.
 
 **Accessibility** ([report](accessibility-report.md)).
-- Two automated checks run in CI: a keyboard-only Playwright pass through
-  the demo path, and axe scans (WCAG 2 A/AA rules) of all six screens in both
-  light and dark mode.
+- Two automated checks are part of the Playwright suite: a keyboard-only
+  pass through the demo path, and axe scans (WCAG 2 A/AA rules) of all six
+  screens in both light and dark mode. The CI workflow runs that suite on
+  every pull request; the evidence recorded here is from local runs, where
+  all 11 E2E tests passed against a production build.
+- A one-off axe sweep also covered phone width (24 scans across the six
+  screens, light and dark, desktop and phone, 0 violations). It is not part
+  of the suite and does not run in CI.
 - The chart has a text summary and an opt-in data table. Every status badge
   pairs its color with an icon and a word.
 - Live updates are announced through a throttled, polite live region.
