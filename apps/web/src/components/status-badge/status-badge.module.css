@@ -2,55 +2,41 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
+  height: 1.5rem;
+  padding: 0 0.6rem;
   border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .firing,
-.critical {
-  background: #f6dede;
-  color: #8a2a1f;
+.critical,
+.failed {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 
 .acknowledged,
-.warning {
-  background: #fbeecb;
-  color: #8a5a0a;
+.warning,
+.pending {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
 }
 
-.resolved {
-  background: #dcefec;
-  color: #0a5852;
+.resolved,
+.success {
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .info {
-  background: #e1e8f5;
-  color: #1f3d8a;
+  background: var(--info-bg);
+  color: var(--info-fg);
 }
 
-@media (prefers-color-scheme: dark) {
-  .firing,
-  .critical {
-    background: #3a1a16;
-    color: #f2a89a;
-  }
-
-  .acknowledged,
-  .warning {
-    background: #3a2c0e;
-    color: #f0c778;
-  }
-
-  .resolved {
-    background: #0f2e2a;
-    color: #7fd6c8;
-  }
-
-  .info {
-    background: #182849;
-    color: #9db3ec;
-  }
+.quiet {
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
 }

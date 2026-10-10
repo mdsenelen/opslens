@@ -8,6 +8,7 @@ import styles from "./resource-status.module.css";
 export function LoadingState({ label }: { label: string }) {
   return (
     <p role="status" className={styles.loading}>
+      <span aria-hidden="true" className={styles.spinner} />
       {label}
     </p>
   );

@@ -1,0 +1,59 @@
+.group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.icon {
+  font-size: 0.75rem;
+}
+
+.value {
+  font-size: 1.75rem;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.positive .icon {
+  color: var(--success-fg);
+}
+
+.negative .icon {
+  color: var(--danger-fg);
+}
+
+.negative .value {
+  color: var(--danger-fg);
+}
+
+@media (max-width: 40rem) {
+  .tile {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .value {
+    font-size: 1.4rem;
+  }
+}

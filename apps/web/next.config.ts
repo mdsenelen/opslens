@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // transpile the shared-types workspace package itself rather than expect
   // a prebuilt dist/.
   transpilePackages: ["@opslens/shared-types"],
+  // The floating dev-tools badge overlaps the bottom-left of every page in
+  // local screenshots and demos; build errors still surface as an overlay.
+  devIndicators: false,
 };
 
 export default nextConfig;

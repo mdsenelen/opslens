@@ -1,18 +1,101 @@
+/* Design tokens. Every component module reads these instead of hard-coding
+   colors, so light/dark mode is one block each, not a scattered set of
+   per-file media queries. Text tokens are chosen against both --bg and
+   --surface: --text-muted and --text-subtle each stay at or above 4.5:1
+   on either (checked with the automated axe scans in e2e/). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --border: #e3e6eb;
+  --border-strong: #cdd2da;
+  --text: #111827;
+  --text-muted: #4b5563;
+  --text-subtle: #5f6876;
+
+  --accent: #2448c9;
+  --accent-hover: #1c3aa8;
+  --accent-soft: #e8edfc;
+  --accent-contrast: #ffffff;
   /* #1f5ade on white is ~5.9:1; the same color on the dark-mode background
      below drops to ~3.6:1, so dark mode gets its own lighter value instead
-     of reusing this one — see the dark-mode block. */
+     of reusing this one, see the dark-mode block. */
   --focus-ring: #1f5ade;
+
+  --danger-bg: #fdecec;
+  --danger-fg: #9b1c1c;
+  --warning-bg: #fdf3d8;
+  --warning-fg: #855209;
+  --success-bg: #e3f4ee;
+  --success-fg: #0b5e47;
+  --info-bg: #e8edfc;
+  --info-fg: #1f3d8a;
+
+  --chart-line: #2448c9;
+  --chart-fill: rgba(36, 72, 201, 0.1);
+  --chart-grid: #eceef2;
+  --chart-axis: #5f6876;
+  --chart-deploy: #855209;
+  --chart-threshold: #b42318;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Kept as aliases so anything still reading the Phase 0 names resolves. */
+  --background: var(--bg);
+  --foreground: var(--text);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b0d12;
+    --surface: #12151c;
+    --surface-muted: #181c25;
+    --border: #242a36;
+    --border-strong: #343b4a;
+    --text: #e7e9ee;
+    --text-muted: #a8b0c0;
+    --text-subtle: #959eb0;
+
+    --accent: #8aa8ff;
+    --accent-hover: #a9bfff;
+    --accent-soft: #1a2442;
+    --accent-contrast: #0b0d12;
     --focus-ring: #7aa2ff;
+
+    --danger-bg: #3a1716;
+    --danger-fg: #f5aba3;
+    --warning-bg: #352a10;
+    --warning-fg: #f0c778;
+    --success-bg: #0e2e26;
+    --success-fg: #7fd6bd;
+    --info-bg: #182849;
+    --info-fg: #a9bdf0;
+
+    --chart-line: #8aa8ff;
+    --chart-fill: rgba(138, 168, 255, 0.12);
+    --chart-grid: #1f2430;
+    --chart-axis: #959eb0;
+    --chart-deploy: #f0c778;
+    --chart-threshold: #f5aba3;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
+
+  html {
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html {
@@ -29,17 +112,26 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 600;
 }
 
 a {
@@ -47,29 +139,41 @@ a {
   text-decoration: none;
 }
 
+code,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
 /* Baseline visible focus indicator for every interactive element that
    doesn't already define its own (docs/spec/11-accessibility.md: "every
-   focusable element ... needs a visible focus indicator" — the Next.js
-   default ships with no such baseline). More specific component rules
-   (filter-bar, data-table) override this with the same token. */
+   focusable element ... needs a visible focus indicator"; the Next.js
+   default ships with no such baseline). */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+summary:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* The only transition in the app today is the skip link's reveal
-   (layout.module.css); this is a baseline for that and for whatever's
-   added next, not a response to any existing motion problem. */
+/* Hover/press transitions are the only motion in the app; this is the
+   baseline that turns them off for anyone who has asked for less motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

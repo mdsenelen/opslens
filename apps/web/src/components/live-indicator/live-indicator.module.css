@@ -1,0 +1,48 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 1.75rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.open .dot {
+  background: var(--success-fg);
+  box-shadow: 0 0 0 3px var(--success-bg);
+}
+
+.connecting .dot,
+.reconnecting .dot {
+  border: 2px solid var(--warning-fg);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.lost {
+  border-color: var(--warning-fg);
+  color: var(--warning-fg);
+  background: var(--warning-bg);
+}
+
+.lost .dot {
+  border: 2px solid var(--warning-fg);
+  background: transparent;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
