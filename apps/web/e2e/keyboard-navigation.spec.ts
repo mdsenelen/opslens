@@ -61,6 +61,8 @@ test("keyboard-only pass: dashboard → service → metric chart → deployment 
 
   await expect(page).toHaveURL(/\/alerts\/.+/);
   await expect(page.getByRole("heading", { name: "error_rate_pct" })).toBeVisible();
-  await expect(page.getByText("Firing")).toBeVisible();
+  // Scoped to the page header: "Acknowledged at" in the details list
+  // would otherwise also match.
+  await expect(page.getByRole("main").locator("header").getByText("Acknowledged")).toBeVisible();
   await expect(page.getByText("gt 5 for 180s")).toBeVisible();
 });

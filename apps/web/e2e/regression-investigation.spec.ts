@@ -4,7 +4,8 @@ import { expect, test } from "@playwright/test";
  * The primary journey from docs/spec/02-user-journeys.md, walked against
  * the deterministic seed (apps/api/src/infra/db/seed.ts): payments-api's
  * error_rate_pct spikes in production ~6h ago, a few minutes after a
- * v2.14.0 deploy, and that spike is what produces the one firing alert.
+ * v2.14.0 deploy, and that spike is what produces the one open
+ * (acknowledged) alert.
  * Requires the seed to have run — see playwright.config.ts.
  */
 test("dashboard → service → metric chart → deployment correlation → alert detail", async ({ page }) => {
@@ -41,6 +42,8 @@ test("dashboard → service → metric chart → deployment correlation → aler
 
   await expect(page).toHaveURL(/\/alerts\/.+/);
   await expect(page.getByRole("heading", { name: "error_rate_pct" })).toBeVisible();
-  await expect(page.getByText("Firing")).toBeVisible();
+  // Scoped to the page header: "Acknowledged at" in the details list
+  // would otherwise also match.
+  await expect(page.getByRole("main").locator("header").getByText("Acknowledged")).toBeVisible();
   await expect(page.getByText("gt 5 for 180s")).toBeVisible();
 });

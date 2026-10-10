@@ -20,9 +20,12 @@ export async function registerServiceRoutes(app: FastifyInstance, db: Database) 
     if (q) { args.push(`%${q}%`); where.push(`(s.name ILIKE $${args.length} OR s.slug ILIKE $${args.length})`); }
     if (environment) { args.push(environment); where.push(`EXISTS (SELECT 1 FROM metrics m JOIN metric_points mp ON mp.metric_id=m.id JOIN environments e ON e.id=mp.environment_id WHERE m.service_id=s.id AND e.name=$${args.length})`); }
     const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    // "Active" means open: firing or acknowledged, the same set the
+    // alerts_open_per_rule_environment_idx partial index treats as open.
+    // An acknowledged alert is still an unresolved problem on that service.
     return paginate(db, {
       countSql: `SELECT count(*)::text AS total FROM services s ${clause}`,
-      selectSql: `SELECT s.*, count(a.id) FILTER (WHERE a.status='firing')::int AS active_alert_count FROM services s LEFT JOIN alerts a ON a.service_id=s.id ${clause} GROUP BY s.id ORDER BY ${sortColumns[sort]} ${order.toUpperCase()}, s.id ASC LIMIT $${args.length + 1} OFFSET $${args.length + 2}`,
+      selectSql: `SELECT s.*, count(a.id) FILTER (WHERE a.status IN ('firing','acknowledged'))::int AS active_alert_count FROM services s LEFT JOIN alerts a ON a.service_id=s.id ${clause} GROUP BY s.id ORDER BY ${sortColumns[sort]} ${order.toUpperCase()}, s.id ASC LIMIT $${args.length + 1} OFFSET $${args.length + 2}`,
       args, page, limit,
       map: (r: Record<string, any>) => ({ ...serviceRow(r), activeAlertCount: Number(r.active_alert_count) }),
     });
