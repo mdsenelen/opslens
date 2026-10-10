@@ -65,6 +65,19 @@ instance, with a `beforeEach` that truncates and re-inserts fixture rows
 (cheaper and more explicit per-test than re-running the full seed script) —
 gated in CI behind `pnpm db:up` running first (see the CI note below).
 
+**Isolation rule:** every integration test shares one physical database and
+resets it with `beforeEach(truncateAll)`; there is no per-test transaction
+rollback and no schema-per-worker. That reset only isolates tests *within*
+a file, so the integration run must be serial — `fileParallelism: false`
+(plus `maxConcurrency: 1`) in `vitest.integration.config.ts`. Two files
+truncating and seeding the same tables in parallel workers race on unique
+constraints (`environments_name_key`) and stomp each other's fixtures
+mid-assertion; it passes locally and fails intermittently in CI. Do not
+"fix" that with `ON CONFLICT` on the fixture inserts — that hides the
+unique-constraint collision while leaving the cross-file `TRUNCATE` stomping
+untouched. A test may assume it owns the whole database; it may not assume
+any row it did not create.
+
 ## Priority 2: remaining evaluator edge cases
 
 Beyond the recency-tolerance case above, the pure `evaluateRule` function
