@@ -1,7 +1,12 @@
 import { pingResponseSchema, type PingResponse } from "@opslens/shared-types";
 import type { z } from "zod";
 
-const API_BASE_URL = process.env.OPSLENS_API_URL ?? "http://localhost:4000";
+// This module runs on both sides. On the server, OPSLENS_API_URL may point
+// somewhere only the server can reach. In the browser that variable does
+// not exist (Next.js only inlines NEXT_PUBLIC_* into client bundles), so
+// client-side fetches must use the public URL, the same one
+// realtime-client.ts's EventSource uses.
+const API_BASE_URL = process.env.OPSLENS_API_URL ?? process.env.NEXT_PUBLIC_OPSLENS_API_URL ?? "http://localhost:4000";
 
 export type ApiError =
   | { kind: "network"; message: string }
