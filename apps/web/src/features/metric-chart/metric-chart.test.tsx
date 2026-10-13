@@ -1,10 +1,11 @@
 import type { MetricPoint } from "@opslens/shared-types";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAlert, getAlerts } from "@/lib/alerts-client";
 import { getDeployments } from "@/lib/deployments-client";
 import { getMetricPoints, METRIC_POINT_LIMIT, type MetricPointsResponse } from "@/lib/metrics-client";
+import { renderWithNavigation } from "@/test/mock-navigation";
 import { MetricChart } from "./metric-chart";
 
 vi.mock("next/navigation", () => ({
@@ -17,8 +18,12 @@ vi.mock("next/navigation", () => ({
 // depth (instance-reuse, setData/redraw) — here uplot is mocked to the bare
 // minimum needed for MetricChart (the container) to mount at all.
 vi.mock("uplot/dist/uPlot.min.css", () => ({}));
+const uplot = vi.hoisted(() => ({ constructed: 0 }));
 vi.mock("uplot", () => ({
   default: class FakeUPlot {
+    constructor() {
+      uplot.constructed++;
+    }
     setData() {}
     setSize() {}
     redraw() {}
@@ -119,5 +124,65 @@ describe("MetricChart", () => {
     const full = Array.from({ length: METRIC_POINT_LIMIT }, (_, i) => point(new Date(Date.UTC(2026, 7, 24, 0, i)).toISOString(), 1));
     render(<MetricChart {...props} initialData={response(full)} />);
     expect(screen.getByText(/Showing the most recent 1000 points/)).toBeInTheDocument();
+  });
+});
+
+describe("MetricChart live ranges", () => {
+  const ids = { serviceId: "33333333-3333-3333-3333-333333333333", metricId: "11111111-1111-1111-1111-111111111111", environment: "production" as const };
+  const start = "2026-08-24T11:00:00.000Z";
+  const end = "2026-08-24T12:00:00.000Z";
+  const initial = response([point("2026-08-24T11:59:00.000Z", 1)]);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(end));
+    uplot.constructed = 0;
+    mockedGetMetricPoints.mockReset().mockResolvedValue(response([point("2026-08-24T11:59:00.000Z", 1), point("2026-08-24T12:00:00.000Z", 2)]));
+    mockedGetDeployments.mockReset().mockResolvedValue({ items: [], page: 1, limit: 100, total: 0 });
+    mockedGetAlerts.mockReset().mockResolvedValue({ items: [], page: 1, limit: 100, total: 0 });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("re-fetches a relative range every minute with the window moved to now, without a loading state or a chart remount", async () => {
+    render(<MetricChart {...ids} range="1h" start={start} end={end} initialData={initial} />);
+    expect(screen.getByText("Updates every minute")).toBeInTheDocument();
+    mockedGetMetricPoints.mockClear();
+
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+
+    expect(mockedGetMetricPoints).toHaveBeenCalledWith(ids.metricId, expect.objectContaining({ start: "2026-08-24T11:01:00.000Z", end: "2026-08-24T12:01:00.000Z" }));
+    expect(mockedGetDeployments).toHaveBeenLastCalledWith(expect.objectContaining({ start: "2026-08-24T11:01:00.000Z", end: "2026-08-24T12:01:00.000Z" }));
+    expect(screen.queryByText("Loading metric data…")).not.toBeInTheDocument();
+    expect(screen.getByText("2 points from", { exact: false })).toBeInTheDocument();
+    expect(uplot.constructed).toBe(1);
+  });
+
+  it("leaves a fixed start/end window alone, so a shared investigation link does not drift", async () => {
+    render(<MetricChart {...ids} start={start} end={end} initialData={initial} />);
+    mockedGetMetricPoints.mockClear();
+
+    await act(async () => vi.advanceTimersByTimeAsync(5 * 60_000));
+
+    expect(mockedGetMetricPoints).not.toHaveBeenCalled();
+    expect(screen.queryByText("Updates every minute")).not.toBeInTheDocument();
+  });
+
+  it("switches to a relative range from the presets, dropping any fixed window from the URL", async () => {
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    const { push } = renderWithNavigation(<MetricChart {...ids} start={start} end={end} initialData={initial} />, `environment=production&start=${start}&end=${end}`);
+
+    await user.click(screen.getByRole("button", { name: "6h" }));
+
+    expect(push).toHaveBeenCalledWith("/?environment=production&range=6h");
+  });
+
+  it("marks the relative range as the pressed preset", () => {
+    render(<MetricChart {...ids} range="6h" start={start} end={end} initialData={initial} />);
+    expect(screen.getByRole("button", { name: "6h" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "1h" })).toHaveAttribute("aria-pressed", "false");
   });
 });

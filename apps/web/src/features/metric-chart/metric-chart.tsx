@@ -11,17 +11,13 @@ import { getAlert, getAlerts } from "@/lib/alerts-client";
 import { describeApiError, isApiError, type ApiError } from "@/lib/api-client";
 import { getDeployments, type DeploymentListItem } from "@/lib/deployments-client";
 import { getMetricPoints, METRIC_POINT_LIMIT, type MetricPointsResponse } from "@/lib/metrics-client";
+import { defaultTimeRange, presetHours, TIME_RANGE_PRESETS, type TimeRangePreset } from "@/lib/time-range";
 import { useApiResource } from "@/lib/use-api-resource";
 import { useUrlState } from "@/lib/url-state";
 import { MetricPointsChart, type Threshold } from "./metric-points-chart";
 import styles from "./metric-chart.module.css";
 
-const PRESETS = [
-  { label: "1h", hours: 1 },
-  { label: "6h", hours: 6 },
-  { label: "24h", hours: 24 },
-  { label: "7d", hours: 24 * 7 },
-] as const;
+const LIVE_REFRESH_MS = 60_000;
 
 /**
  * The canvas chart is never the only way to get the data
@@ -72,6 +68,7 @@ export function MetricChart({
   serviceId,
   metricId,
   environment,
+  range,
   start,
   end,
   initialData,
@@ -79,11 +76,19 @@ export function MetricChart({
   serviceId: string;
   metricId: string;
   environment: EnvironmentName;
+  /** Set for a live view: the window ends at "now" and refreshes every minute. */
+  range?: TimeRangePreset;
+  /** The window the server rendered: fixed, or the live range's window at render time. */
   start: string;
   end: string;
   initialData: MetricPointsResponse | ApiError;
 }) {
   const { set } = useUrlState();
+
+  // A relative range is recomputed at each fetch, so the request always
+  // ends at the current minute; a fixed start/end (an alert's
+  // "Open the metric chart" link) is used as given and never moves.
+  const currentWindow = useCallback(() => (range ? defaultTimeRange(presetHours(range)) : { start, end }), [range, start, end]);
 
   // order: "desc" — the API caps points at 1000 per request
   // (metricPointsQuerySchema), and production's seeded cadence is one
@@ -94,21 +99,34 @@ export function MetricChart({
   // re-sorted ascending below before rendering, since the chart needs
   // chronological order regardless of fetch order.
   const fetcher = useCallback(
-    () => getMetricPoints(metricId, { environment, start, end, order: "desc", limit: METRIC_POINT_LIMIT }),
-    [metricId, environment, start, end],
+    () => getMetricPoints(metricId, { environment, ...currentWindow(), order: "desc", limit: METRIC_POINT_LIMIT }),
+    [metricId, environment, currentWindow],
   );
-  const [state, retry] = useApiResource(fetcher, initialData);
+  const [state, retry, refresh] = useApiResource(fetcher, initialData);
+
+  // Live views refresh in the background (no loading state, so the uPlot
+  // instance is updated in place rather than remounted). tick re-runs the
+  // deployments and threshold effects below on the same beat.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!range) return;
+    const id = setInterval(() => {
+      refresh();
+      setTick((t) => t + 1);
+    }, LIVE_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [range, refresh]);
 
   const [deployments, setDeployments] = useState<DeploymentListItem[]>([]);
   useEffect(() => {
     let cancelled = false;
-    void getDeployments({ serviceId, environment, start, end, limit: 100 }).then((result) => {
+    void getDeployments({ serviceId, environment, ...currentWindow(), limit: 100 }).then((result) => {
       if (!cancelled && !isApiError(result)) setDeployments(result.items);
     });
     return () => {
       cancelled = true;
     };
-  }, [serviceId, environment, start, end]);
+  }, [serviceId, environment, currentWindow, tick]);
 
   const metricName = state.status === "ready" ? state.data.metric.name : undefined;
   // Tagged with the metricName it was fetched for, so a stale threshold
@@ -136,7 +154,7 @@ export function MetricChart({
     return () => {
       cancelled = true;
     };
-  }, [serviceId, environment, metricName]);
+  }, [serviceId, environment, metricName, tick]);
   const displayedThreshold = threshold?.metricName === metricName ? threshold : undefined;
 
   // The table alternative below is lazy-rendered — building up to 1,000
@@ -163,19 +181,17 @@ export function MetricChart({
           <>
             <span className={styles.envChip}>{environment}</span>
             {state.status === "ready" && <span>Unit: {state.data.metric.unit}</span>}
+            {range && <span>Updates every minute</span>}
           </>
         }
         actions={
           <div className={styles.presets} role="group" aria-label="Time range">
-            {PRESETS.map((preset) => (
+            {TIME_RANGE_PRESETS.map((preset) => (
               <button
                 key={preset.label}
                 type="button"
-                aria-pressed={windowHours === preset.hours}
-                onClick={() => {
-                  const now = Date.now();
-                  set({ start: new Date(now - preset.hours * 3600_000).toISOString(), end: new Date(now).toISOString() });
-                }}
+                aria-pressed={range ? range === preset.label : windowHours === preset.hours}
+                onClick={() => set({ range: preset.label, start: undefined, end: undefined })}
               >
                 {preset.label}
               </button>
