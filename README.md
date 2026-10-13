@@ -1,5 +1,7 @@
 # OpsLens
 
+[![CI](https://github.com/mdsenelen/opslens/actions/workflows/ci.yml/badge.svg)](https://github.com/mdsenelen/opslens/actions/workflows/ci.yml)
+
 Did a recent deploy line up with a real regression in this service, in this
 environment? OpsLens answers that one question for a small fleet. It puts a
 service's metric, its alert threshold and its deployments on one chart, and
@@ -132,6 +134,21 @@ code under `infra/`, and a module may use `infra/` but never another module.
 | Web components (Vitest, Testing Library) | `pnpm --filter @opslens/web test` | nothing |
 | E2E (Playwright): demo journey, keyboard-only journey, SSE reconnection, axe scans in light and dark | `pnpm --filter @opslens/web test:e2e` | migrated and seeded Postgres |
 
+The E2E specs live in `apps/web/e2e/`: the demo journey
+(`regression-investigation`), the keyboard-only pass (`keyboard-navigation`),
+SSE reconnection (`realtime-reconnection`), and the axe scans
+(`accessibility`, every screen in light and dark). Before the first run,
+install the browser once:
+
+```bash
+pnpm --filter @opslens/web exec playwright install chromium
+```
+
+Playwright starts the API and the web app itself (see
+`apps/web/playwright.config.ts`). Locally it reuses servers already
+listening on `:3000` and `:4000`, so stop your dev servers first if you want
+a clean run.
+
 Integration tests truncate the database they point at, so run them against a
 scratch database rather than the one you seeded for the demo. They run
 serially by design (see `apps/api/vitest.integration.config.ts`).
@@ -139,4 +156,7 @@ serially by design (see `apps/api/vitest.integration.config.ts`).
 CI (`.github/workflows/ci.yml`) is configured to run lint, typecheck, unit
 tests and the build on every pull request and every push to `main`, plus the
 integration and E2E suites against a `postgres:16-alpine` service container.
-Phone-width axe scans were a one-off local check and are not part of CI.
+All three jobs (`checks`, `integration`, `e2e`) passed on
+[pull request #2](https://github.com/mdsenelen/opslens/pull/2), the first CI
+run to include the keyboard and axe suites. Phone-width axe scans were a
+one-off local check and are not part of CI.
