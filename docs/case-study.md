@@ -97,8 +97,8 @@ are recorded in the linked reports.
 - Two automated checks are part of the Playwright suite: a keyboard-only
   pass through the demo path, and axe scans (WCAG 2 A/AA rules) of all six
   screens in both light and dark mode. The CI workflow runs that suite on
-  every pull request; the evidence recorded here is from local runs, where
-  all 11 E2E tests passed against a production build.
+  every pull request. All 11 E2E tests passed locally, and the `e2e` job
+  passed on [pull request #2](https://github.com/mdsenelen/opslens/pull/2).
 - A one-off axe sweep also covered phone width (24 scans across the six
   screens, light and dark, desktop and phone, 0 violations). It is not part
   of the suite and does not run in CI.
