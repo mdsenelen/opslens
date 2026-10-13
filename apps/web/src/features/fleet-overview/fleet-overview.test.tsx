@@ -1,7 +1,8 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApiError } from "@/lib/api-client";
+import { useRealtimeAlerts } from "@/lib/realtime-client";
 import { getServices, type ServiceListItem, type ServiceListResponse } from "@/lib/services-client";
 import { renderWithNavigation } from "@/test/mock-navigation";
 import { FleetOverview } from "./fleet-overview";
@@ -17,7 +18,10 @@ vi.mock("@/lib/services-client", async (importOriginal) => {
   return { ...actual, getServices: vi.fn() };
 });
 
+vi.mock("@/lib/realtime-client", () => ({ useRealtimeAlerts: vi.fn(() => "open"), useConnectionAnnouncements: vi.fn() }));
+
 const mockedGetServices = vi.mocked(getServices);
+const mockedUseRealtimeAlerts = vi.mocked(useRealtimeAlerts);
 
 function service(overrides: Partial<ServiceListItem> = {}): ServiceListItem {
   return {
@@ -104,5 +108,29 @@ describe("FleetOverview", () => {
     await user.selectOptions(screen.getByLabelText("Environment"), "production");
 
     expect(push).toHaveBeenCalledWith("/?environment=production");
+  });
+
+  it("refreshes the alert counts in place when a live alert-status event arrives", async () => {
+    mockedGetServices.mockResolvedValue(response([service({ activeAlertCount: 1 })]));
+    renderWithNavigation(<FleetOverview initialData={response([service({ activeAlertCount: 0 })])} />);
+    expect(screen.getByText("Live")).toBeInTheDocument();
+
+    const onAlertChange = mockedUseRealtimeAlerts.mock.lastCall![1];
+    act(() =>
+      onAlertChange({
+        id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        alertRuleId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        serviceId: "11111111-1111-1111-1111-111111111111",
+        environmentId: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+        status: "firing",
+        firedAt: "2026-01-01T00:00:00.000Z",
+        acknowledgedAt: null,
+        resolvedAt: null,
+      }),
+    );
+
+    // Background refresh: the table never drops to the loading state.
+    expect(screen.queryByText(/Loading/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("cell", { name: "1" })).toBeInTheDocument());
   });
 });
