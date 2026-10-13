@@ -1,0 +1,23 @@
+name: Keep demo awake
+
+# Optional. Render's free tier stops the API after about 15 idle minutes,
+# and the first visitor after that waits while it starts. The API fills
+# in the data it missed either way (see live-simulation.ts), so this only
+# shortens that first page load. It does nothing until the repository
+# variable DEMO_API_URL is set (Settings > Secrets and variables >
+# Actions > Variables), e.g. https://opslens-api.onrender.com.
+#
+# GitHub may delay scheduled runs and disables them in repositories with
+# no activity for 60 days.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    if: ${{ vars.DEMO_API_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl --fail --silent --show-error --max-time 120 "${{ vars.DEMO_API_URL }}/api/ping"

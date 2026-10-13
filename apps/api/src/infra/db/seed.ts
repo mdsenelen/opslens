@@ -1,13 +1,11 @@
 import {
   createAlertRuleSchema,
   createDeploymentSchema,
-  createServiceSchema,
-  type AlertComparator,
-  type AlertSeverity,
   type EnvironmentName,
-  type MetricKind,
 } from "@opslens/shared-types";
 import { Pool } from "pg";
+import { DATA_ENVIRONMENTS, ENVIRONMENTS, METRIC_DEFS, SERVICES } from "../simulation/catalog";
+import { upsertReferenceData } from "./reference-data";
 
 /**
  * Deterministic seed for local dev / demo. Reference data (services,
@@ -46,89 +44,6 @@ function hashSeed(label: string): number {
   return hash ^ SEED;
 }
 
-type ServiceSeed = { slug: string; name: string; description: string };
-
-const SERVICES: ServiceSeed[] = [
-  {
-    slug: "checkout-api",
-    name: "Checkout API",
-    description: "Handles cart checkout and order creation.",
-  },
-  {
-    slug: "payments-api",
-    name: "Payments API",
-    description: "Processes payment authorization and capture.",
-  },
-  {
-    slug: "inventory-api",
-    name: "Inventory API",
-    description: "Tracks stock levels across warehouses.",
-  },
-  {
-    slug: "notifications-worker",
-    name: "Notifications Worker",
-    description: "Sends order and shipping notification emails.",
-  },
-];
-
-const ENVIRONMENTS: EnvironmentName[] = [
-  "production",
-  "staging",
-  "development",
-];
-
-type MetricDef = {
-  name: string;
-  unit: string;
-  kind: MetricKind;
-  baseline: number;
-  noise: number;
-  floor: number;
-  alertComparator: AlertComparator;
-  alertThreshold: number;
-  alertDurationSeconds: number;
-  alertSeverity: AlertSeverity;
-};
-
-const METRIC_DEFS: MetricDef[] = [
-  {
-    name: "p95_latency_ms",
-    unit: "ms",
-    kind: "gauge",
-    baseline: 120,
-    noise: 8,
-    floor: 15,
-    alertComparator: "gt",
-    alertThreshold: 300,
-    alertDurationSeconds: 300,
-    alertSeverity: "warning",
-  },
-  {
-    name: "error_rate_pct",
-    unit: "percent",
-    kind: "gauge",
-    baseline: 0.4,
-    noise: 0.15,
-    floor: 0,
-    alertComparator: "gt",
-    alertThreshold: 5,
-    alertDurationSeconds: 180,
-    alertSeverity: "critical",
-  },
-];
-
-// Environments that get generated traffic, and at what resolution — mirrors
-// real fleets where staging sees lower, sparser volume than production, and
-// development gets none.
-const DATA_ENVIRONMENTS: {
-  name: EnvironmentName;
-  windowHours: number;
-  stepMinutes: number;
-}[] = [
-  { name: "production", windowHours: 24, stepMinutes: 1 },
-  { name: "staging", windowHours: 24, stepMinutes: 5 },
-];
-
 // The one injected regression: payments-api's p95 latency and error rate
 // both spike for 15 minutes, ~6h ago, a few minutes after a deploy.
 const ANOMALY = {
@@ -156,58 +71,7 @@ async function main() {
     console.log(`Seeding against ${DATABASE_URL.replace(/:[^:@]+@/, ":***@")}`);
 
     // --- reference data: upsert by natural key -----------------------------
-    const environmentIds = new Map<EnvironmentName, string>();
-    for (const name of ENVIRONMENTS) {
-      const { rows } = await pool.query<{ id: string }>(
-        `insert into environments (name) values ($1)
-         on conflict (name) do update set name = excluded.name
-         returning id`,
-        [name],
-      );
-      const row = rows[0];
-      if (!row) throw new Error(`failed to upsert environment ${name}`);
-      environmentIds.set(name, row.id);
-    }
-
-    const serviceIds = new Map<string, string>();
-    for (const service of SERVICES) {
-      const input = createServiceSchema.parse({
-        name: service.name,
-        slug: service.slug,
-        description: service.description,
-      });
-      const { rows } = await pool.query<{ id: string }>(
-        `insert into services (name, slug, description) values ($1, $2, $3)
-         on conflict (slug) do update set
-           name = excluded.name, description = excluded.description
-         returning id`,
-        [input.name, input.slug, input.description],
-      );
-      const row = rows[0];
-      if (!row) throw new Error(`failed to upsert service ${service.slug}`);
-      serviceIds.set(service.slug, row.id);
-    }
-
-    const metricIds = new Map<string, string>(); // key: `${slug}:${metricName}`
-    for (const service of SERVICES) {
-      const serviceId = serviceIds.get(service.slug);
-      if (!serviceId) throw new Error(`missing service id for ${service.slug}`);
-      for (const def of METRIC_DEFS) {
-        const { rows } = await pool.query<{ id: string }>(
-          `insert into metrics (service_id, name, unit, kind)
-           values ($1, $2, $3, $4)
-           on conflict (service_id, name) do update set
-             unit = excluded.unit, kind = excluded.kind
-           returning id`,
-          [serviceId, def.name, def.unit, def.kind],
-        );
-        const row = rows[0];
-        if (!row) {
-          throw new Error(`failed to upsert metric ${service.slug}/${def.name}`);
-        }
-        metricIds.set(`${service.slug}:${def.name}`, row.id);
-      }
-    }
+    const { environmentIds, serviceIds, metricIds } = await upsertReferenceData(pool);
 
     // --- generated data: clear and regenerate, dependency order first -----
     await pool.query("delete from alerts");

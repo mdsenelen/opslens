@@ -7,6 +7,11 @@ environment? OpsLens answers that one question for a small fleet. It puts a
 service's metric, its alert threshold and its deployments on one chart, and
 links from the alert straight back to it.
 
+The data is simulated, but it is live: when hosted, the API writes new
+metric points every minute, and every 3 hours a release goes out on one of
+the services, its error rate spikes, the alert evaluator fires real alerts,
+and a rollback recovers it. See [Live data](#live-data).
+
 ![Metric chart: Payments API error rate in production, with the v2.14.0 deployment marker and the alert threshold overlaid](docs/screenshots/metric-chart.png)
 
 **Read next:** the [case study](docs/case-study.md) (decisions, evidence,
@@ -25,6 +30,7 @@ limits, about five minutes) · the [planning blueprint](docs/spec/00-overview.md
 | 6 | Measured performance work ([report](docs/performance-report.md)) |
 | 7 | Accessibility pass with automated keyboard and axe checks ([report](docs/accessibility-report.md)) |
 | 9 | Visual design system, demo-path fixes, [case study](docs/case-study.md) |
+| After 9 | Live simulated data, live chart ranges, hosting config ([deployment guide](docs/deployment.md)) |
 
 ## Stack
 
@@ -40,7 +46,7 @@ Recharts, TanStack Query, WebSockets, Tailwind), are in the
 
 ## The demo path
 
-Fleet overview → **Payments API** (flagged with an active alert) →
+Locally, against the seed: fleet overview → **Payments API** (flagged with an active alert) →
 `error_rate_pct` in **production** → the spike, with the `v2.14.0` deployment
 marker just before it and the alert threshold overlaid → the alert's detail,
 whose **Open the metric chart** link goes back to the chart centred on the
@@ -52,6 +58,42 @@ alert.
 
 Light and dark themes follow the operating system
 ([dark screenshot](docs/screenshots/metric-chart-dark.png)).
+
+On the hosted demo the incident changes service every 3 hours, so start
+from **Alerts**: open the newest alert and follow **Open the metric chart**.
+
+![A live incident: Checkout API's error rate spikes after release v3.95.8 ships and recovers after the rollback to v3.95.7](docs/screenshots/live-incident.png)
+
+## Live data
+
+With `SIMULATION_ENABLED=true` (the hosted demo), the API writes the
+fleet's data itself, once a minute:
+
+- Normal traffic: every metric's catalogue baseline with a daily swing and
+  per-minute noise, always under its alert threshold.
+- An incident every 3 hours (UTC 00:00, 03:00, ...), rotating through the
+  four services. A release reaches staging, then production; 4 minutes
+  later error rate and p95 latency spike; on-call rolls back to the
+  previous release 13 minutes into the spike, and the metrics recover.
+- A healthy release on another service in between, so not every
+  deployment marker is the guilty one.
+
+Alerts are never written by the simulation. The same evaluator that runs
+locally reads the points and opens and resolves them, and the alerts list
+and fleet overview update over the SSE stream.
+
+Every value is a pure function of the timestamp
+(`apps/api/src/infra/simulation/scenario.ts`). That lets an API that was
+asleep (free hosting tiers stop idle services) write the exact data it
+missed when it starts again, and replay the evaluator over any incident in
+that gap. Points older than 8 days are pruned.
+
+Relative chart ranges (`?range=1h|6h|24h|7d`, the default) follow "now"
+and refresh every minute without remounting the chart. An explicit `start`
+and `end`, which an alert's chart link carries, stays fixed.
+
+Deploying it: [docs/deployment.md](docs/deployment.md) (Neon, Render,
+Vercel, all free tiers).
 
 ## Running it locally
 
@@ -86,7 +128,17 @@ every screen still renders, with an inline error and a Retry button or an
 empty state instead of a crash.
 
 Re-run the seed to move the scenario back to "now". The seed writes a fixed
-history ending at seed time; nothing ingests new points afterwards.
+history ending at seed time, and nothing adds points afterwards unless you
+start the API with the simulation on. To try the live data locally, use a
+separate database, because the seed's fixed scenario and the simulation
+are meant to be used apart:
+
+```bash
+export DATABASE_URL="postgres://opslens:opslens@localhost:5432/opslens_live"   # create it first
+pnpm --filter @opslens/api migrate:up
+pnpm --filter @opslens/api bootstrap   # reference rows and alert rules only
+SIMULATION_ENABLED=true pnpm dev:api   # backfills 24 hours on start
+```
 
 ## Backend API
 
@@ -107,7 +159,7 @@ history ending at seed time; nothing ingests new points afterwards.
   when the rule stops violating; acknowledged alerts stay open until
   handled.
 - Every fire and resolve is published on the SSE stream, so an open alerts
-  page updates without polling. The stream carries change signals only; REST
+  page and the fleet overview update without polling. The stream carries change signals only; REST
   stays the source of truth.
 
 ## Architecture rules that are enforced, not just described
@@ -130,7 +182,7 @@ code under `infra/`, and a module may use `infra/` but never another module.
 | Layer | Command | Needs |
 | --- | --- | --- |
 | API unit, contract and validation | `pnpm --filter @opslens/api test` | nothing |
-| API integration (real SQL) | `pnpm --filter @opslens/api test:integration` | migrated Postgres |
+| API integration (real SQL, including the live simulation tick) | `pnpm --filter @opslens/api test:integration` | migrated Postgres |
 | Web components (Vitest, Testing Library) | `pnpm --filter @opslens/web test` | nothing |
 | E2E (Playwright): demo journey, keyboard-only journey, SSE reconnection, axe scans in light and dark | `pnpm --filter @opslens/web test:e2e` | migrated and seeded Postgres |
 
