@@ -25,6 +25,11 @@ describe("ErrorState", () => {
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
+
+  it("moves focus to itself on mount, so Retry is one Tab away", () => {
+    render(<ErrorState message="Can't reach the API." onRetry={vi.fn()} />);
+    expect(screen.getByRole("alert")).toHaveFocus();
+  });
 });
 
 describe("EmptyState", () => {

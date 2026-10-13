@@ -1,4 +1,4 @@
-import type { AlertSeverity, AlertStatus } from "@opslens/shared-types";
+import type { AlertSeverity, AlertStatus, DeploymentStatus } from "@opslens/shared-types";
 import styles from "./status-badge.module.css";
 
 // Color must never be the only signal here (docs/spec/11-accessibility.md
@@ -41,6 +41,41 @@ export function SeverityBadge({ severity }: { severity: AlertSeverity }) {
     <span className={`${styles.badge} ${styles[severity]}`}>
       <span aria-hidden="true">{SEVERITY_ICON[severity]}</span>
       {SEVERITY_LABEL[severity]}
+    </span>
+  );
+}
+
+// The fleet table's activeAlertCount (docs/spec/11-accessibility.md: "a
+// service row with a nonzero activeAlertCount needs the same color-
+// independent treatment as above — an icon/badge with text, not a
+// red-tinted row as the only cue"). Reuses .critical's color pair — a
+// service with active alerts is exactly as urgent as a critical alert.
+export function AlertCountBadge({ count }: { count: number }) {
+  if (count === 0) return <span className={styles.quiet}>0</span>;
+  return (
+    <span className={`${styles.badge} ${styles.critical}`}>
+      <span aria-hidden="true">⚠</span>
+      {count}
+    </span>
+  );
+}
+
+const DEPLOYMENT_LABEL: Record<DeploymentStatus, string> = {
+  pending: "Pending",
+  success: "Succeeded",
+  failed: "Failed",
+};
+const DEPLOYMENT_ICON: Record<DeploymentStatus, string> = {
+  pending: "◷",
+  success: "✓",
+  failed: "✕",
+};
+
+export function DeploymentStatusBadge({ status }: { status: DeploymentStatus }) {
+  return (
+    <span className={`${styles.badge} ${styles[status]}`}>
+      <span aria-hidden="true">{DEPLOYMENT_ICON[status]}</span>
+      {DEPLOYMENT_LABEL[status]}
     </span>
   );
 }

@@ -4,13 +4,17 @@ import type { Alert } from "@opslens/shared-types";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, type Column } from "@/components/data-table/data-table";
 import { FilterBar, FilterField } from "@/components/filter-bar/filter-bar";
+import { LiveIndicator } from "@/components/live-indicator/live-indicator";
+import { PageHeader } from "@/components/page-header/page-header";
+import { Panel } from "@/components/panel/panel";
 import { EmptyState, ErrorState, LoadingState } from "@/components/resource-status/resource-status";
 import { SeverityBadge, StatusBadge } from "@/components/status-badge/status-badge";
 import { describeApiError, isApiError, type ApiError } from "@/lib/api-client";
 import { getAlerts, type AlertListItem, type AlertListResponse } from "@/lib/alerts-client";
-import { useRealtimeAlerts } from "@/lib/realtime-client";
+import { useConnectionAnnouncements, useRealtimeAlerts } from "@/lib/realtime-client";
 import { getServices, type ServiceListItem } from "@/lib/services-client";
 import { useApiResource } from "@/lib/use-api-resource";
+import { useLiveAnnouncer } from "@/lib/use-live-announcer";
 import { useUrlState } from "@/lib/url-state";
 import styles from "./alerts-list.module.css";
 
@@ -46,19 +50,20 @@ export function AlertsList({ initialData }: { initialData: AlertListResponse | A
   // filtered list on notification" rather than patching one row in place —
   // simpler and correct at this dataset size. alert-detail.tsx (a single
   // alert, no filter-membership question) patches in place instead.
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const [liveAnnouncement, announce] = useLiveAnnouncer();
   const handleAlertChange = useCallback(
     (alert: Alert) => {
-      setLiveAnnouncement(`An alert is now ${alert.status}.`);
+      announce(`An alert is now ${alert.status}.`);
       retry();
     },
-    [retry],
+    [announce, retry],
   );
   const connectionState = useRealtimeAlerts(serviceId, handleAlertChange, retry);
+  useConnectionAnnouncements(connectionState, announce);
 
   const columns: Column<AlertListItem>[] = [
     { key: "serviceName", header: "Service", render: (a) => a.serviceName },
-    { key: "metricName", header: "Metric", render: (a) => a.metricName },
+    { key: "metricName", header: "Metric", render: (a) => <code>{a.metricName}</code> },
     { key: "environmentName", header: "Environment", render: (a) => a.environmentName },
     { key: "severity", header: "Severity", render: (a) => <SeverityBadge severity={a.severity} /> },
     { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
@@ -67,16 +72,11 @@ export function AlertsList({ initialData }: { initialData: AlertListResponse | A
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1>Alerts</h1>
-        {connectionState !== "open" && (
-          <span className={styles.connectionBadge}>
-            {connectionState === "connecting" && "Connecting to live updates…"}
-            {connectionState === "reconnecting" && "Reconnecting…"}
-            {connectionState === "lost" && "Live updates paused"}
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="Alerts"
+        description="Every alert the evaluator has opened, newest first. Status changes arrive over a live connection, so this list updates without a refresh."
+        actions={<LiveIndicator state={connectionState} />}
+      />
 
       {/* Screen-reader-only live region for status transitions — polite,
           not assertive, so a background change doesn't interrupt the user
@@ -85,53 +85,63 @@ export function AlertsList({ initialData }: { initialData: AlertListResponse | A
         {liveAnnouncement}
       </div>
 
-      <FilterBar>
-        <FilterField label="Service" htmlFor="alerts-service">
-          <select id="alerts-service" defaultValue={serviceId ?? ""} onChange={(e) => set({ serviceId: e.target.value || undefined })}>
-            <option value="">All services</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-        <FilterField label="Environment" htmlFor="alerts-environment">
-          <select id="alerts-environment" defaultValue={environment ?? ""} onChange={(e) => set({ environment: e.target.value || undefined })}>
-            <option value="">All environments</option>
-            {ENVIRONMENTS.map((env) => (
-              <option key={env} value={env}>
-                {env}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-        <FilterField label="Status" htmlFor="alerts-status">
-          <select id="alerts-status" defaultValue={status ?? ""} onChange={(e) => set({ status: e.target.value || undefined })}>
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-        <FilterField label="Severity" htmlFor="alerts-severity">
-          <select id="alerts-severity" defaultValue={severity ?? ""} onChange={(e) => set({ severity: e.target.value || undefined })}>
-            <option value="">All severities</option>
-            {SEVERITIES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-      </FilterBar>
+      <Panel flush>
+        <div className={styles.filters}>
+          <FilterBar>
+            <FilterField label="Service" htmlFor="alerts-service">
+              <select id="alerts-service" defaultValue={serviceId ?? ""} onChange={(e) => set({ serviceId: e.target.value || undefined })}>
+                <option value="">All services</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+            <FilterField label="Environment" htmlFor="alerts-environment">
+              <select id="alerts-environment" defaultValue={environment ?? ""} onChange={(e) => set({ environment: e.target.value || undefined })}>
+                <option value="">All environments</option>
+                {ENVIRONMENTS.map((env) => (
+                  <option key={env} value={env}>
+                    {env}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+            <FilterField label="Status" htmlFor="alerts-status">
+              <select id="alerts-status" defaultValue={status ?? ""} onChange={(e) => set({ status: e.target.value || undefined })}>
+                <option value="">All statuses</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+            <FilterField label="Severity" htmlFor="alerts-severity">
+              <select id="alerts-severity" defaultValue={severity ?? ""} onChange={(e) => set({ severity: e.target.value || undefined })}>
+                <option value="">All severities</option>
+                {SEVERITIES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          </FilterBar>
+        </div>
 
-      {state.status === "loading" && <LoadingState label="Loading alerts…" />}
-      {state.status === "error" && <ErrorState message={describeApiError(state.error)} onRetry={retry} />}
-      {state.status === "ready" && state.data.items.length === 0 && <EmptyState message="No alerts match these filters." />}
-      {state.status === "ready" && state.data.items.length > 0 && <DataTable columns={columns} rows={state.data.items} getRowHref={(a) => `/alerts/${a.id}`} />}
+        {state.status === "loading" && <LoadingState label="Loading alerts…" />}
+        {state.status === "error" && (
+          <div className={styles.inset}>
+            <ErrorState message={describeApiError(state.error)} onRetry={retry} />
+          </div>
+        )}
+        {state.status === "ready" && state.data.items.length === 0 && <EmptyState message="No alerts match these filters." />}
+        {state.status === "ready" && state.data.items.length > 0 && (
+          <DataTable columns={columns} rows={state.data.items} getRowHref={(a) => `/alerts/${a.id}`} />
+        )}
+      </Panel>
     </div>
   );
 }

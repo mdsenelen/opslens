@@ -1,16 +1,13 @@
 .page {
-  padding: 2rem;
-  max-width: 72rem;
-  margin: 0 auto;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.alertCount {
-  color: #8a2a1f;
+.inset {
+  padding: 1.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  .alertCount {
-    color: #f2a89a;
-  }
+.description {
+  color: var(--text-muted);
 }

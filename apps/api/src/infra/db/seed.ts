@@ -381,23 +381,38 @@ async function main() {
       );
     }
 
-    // --- alerts: one firing (the anomaly), one already resolved -----------
+    // --- alerts: one open (the anomaly), one already resolved -------------
+    // The anomaly's alert is seeded as *acknowledged*, not firing. The
+    // spike it describes ended hours ago, so the evaluator (which runs a
+    // minute after the API starts) would correctly resolve a firing alert
+    // on its first pass, and the demo's last step would show "resolved"
+    // to anyone who arrived more than a minute after boot. Acknowledged
+    // alerts are deliberately never auto-resolved (alert-evaluation-job.ts),
+    // which is also the realistic state: on-call has seen it and is
+    // investigating whether v2.14.0 caused it.
     const anomalyAlertRuleId = alertRuleIds.get(
       `${ANOMALY.serviceSlug}:error_rate_pct`,
     );
     const anomalyServiceId = serviceIds.get(ANOMALY.serviceSlug);
     const anomalyEnvironmentId = environmentIds.get(ANOMALY.environment);
     if (anomalyAlertRuleId && anomalyServiceId && anomalyEnvironmentId) {
-      const firedAt = new Date(
+      const firedAtMs =
         now -
-          ANOMALY.startHoursAgo * 60 * 60 * 1000 +
-          METRIC_DEFS[1]!.alertDurationSeconds * 1000,
-      ).toISOString();
+        ANOMALY.startHoursAgo * 60 * 60 * 1000 +
+        METRIC_DEFS[1]!.alertDurationSeconds * 1000;
+      const firedAt = new Date(firedAtMs).toISOString();
+      const acknowledgedAt = new Date(firedAtMs + 8 * 60 * 1000).toISOString();
       await pool.query(
         `insert into alerts
-           (alert_rule_id, service_id, environment_id, status, fired_at)
-         values ($1, $2, $3, 'firing', $4)`,
-        [anomalyAlertRuleId, anomalyServiceId, anomalyEnvironmentId, firedAt],
+           (alert_rule_id, service_id, environment_id, status, fired_at, acknowledged_at)
+         values ($1, $2, $3, 'acknowledged', $4, $5)`,
+        [
+          anomalyAlertRuleId,
+          anomalyServiceId,
+          anomalyEnvironmentId,
+          firedAt,
+          acknowledgedAt,
+        ],
       );
     }
 

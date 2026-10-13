@@ -1,6 +1,14 @@
 .page {
-  padding: 2rem;
-  max-width: 72rem;
-  margin: 0 auto;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filters {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.inset {
+  padding: 1.25rem;
 }

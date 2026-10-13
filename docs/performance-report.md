@@ -100,3 +100,36 @@ whose `limit` is hard-capped at 100
 case virtualization exists to solve, and the API's own contract makes a
 larger single render structurally impossible without a schema change
 nothing in this project proposes. No action.
+
+## 6. Phase 9 re-check: bundle split and the chart's point limit
+
+**Bundle split, re-measured.** The redesign changed the chart component and
+added shared layout components used on every route, so measurement 4 was
+repeated: `pnpm --filter @opslens/web build`, `next start`, then a Playwright
+Chromium session visiting all six routes and recording every JS response
+body (uncompressed bytes).
+
+| Route | JS files | JS total (uncompressed) | uPlot chunk |
+|---|---|---|---|
+| `/` | 8 | 745.1 KB | none |
+| `/services/[serviceId]` | 8 | 740.8 KB | none |
+| `/services/[serviceId]/metrics/[metricId]` | 9 | 800.1 KB | 58.5 KB |
+| `/alerts` | 8 | 747.9 KB | none |
+| `/alerts/[alertId]` | 8 | 745.4 KB | none |
+| `/deployments` | 8 | 745.0 KB | none |
+
+The split still holds: uPlot loads on the metric chart route only. The
+chunk measured 58.5 KB here against 55.6 KB in measurement 4. The chart
+component's own code (theme token reading and marker labels) is the most
+likely source of the difference, but that attribution was not verified.
+Totals are uncompressed response bodies, not transfer sizes, so do not read
+them as network cost.
+
+**A correctness finding, not a speed one.** The chart never passed `limit`
+to `GET /metrics/:metricId/points`, so the API's default of 500 points
+applied. At production's seeded cadence of one point per minute, that is
+about 8 hours, so the "24h" and "7d" presets both showed roughly the last 8
+hours. The chart now requests the maximum of 1,000 points (about 16 hours at
+that cadence) and says in text when a response is at the cap. Showing a
+full 24h or 7d window would need server-side downsampling. That was not
+built, so no performance claim about it is made here.

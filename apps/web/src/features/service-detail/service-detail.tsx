@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useCallback } from "react";
+import { PageHeader } from "@/components/page-header/page-header";
+import { Panel } from "@/components/panel/panel";
 import { EmptyState, ErrorState, LoadingState } from "@/components/resource-status/resource-status";
 import { describeApiError, type ApiError } from "@/lib/api-client";
 import { getService, type ServiceDetail as ServiceDetailData } from "@/lib/services-client";
 import { useApiResource } from "@/lib/use-api-resource";
 import styles from "./service-detail.module.css";
+
+const BACK = { href: "/", label: "Fleet overview" };
 
 /**
  * Screen 2 of the primary journey: one service's metrics and the
@@ -17,47 +21,72 @@ export function ServiceDetail({ serviceId, initialData }: { serviceId: string; i
   const fetcher = useCallback(() => getService(serviceId), [serviceId]);
   const [state, retry] = useApiResource(fetcher, initialData);
 
+  if (state.status === "loading") {
+    return (
+      <div className={styles.page}>
+        <PageHeader back={BACK} title="Service" />
+        <LoadingState label="Loading service…" />
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <div className={styles.page}>
+        <PageHeader back={BACK} title="Service" />
+        <ErrorState message={describeApiError(state.error)} onRetry={retry} />
+      </div>
+    );
+  }
+
+  const { service, metrics, environments } = state.data;
+
   return (
     <div className={styles.page}>
-      <p>
-        <Link href="/">← Fleet overview</Link>
-      </p>
+      <PageHeader
+        back={BACK}
+        title={service.name}
+        meta={<code>{service.slug}</code>}
+        description={service.description ?? undefined}
+        actions={
+          <>
+            <Link className={styles.secondaryLink} href={`/alerts?serviceId=${serviceId}`}>
+              Open alerts
+            </Link>
+            <Link className={styles.secondaryLink} href={`/deployments?serviceId=${serviceId}`}>
+              Deployment history
+            </Link>
+          </>
+        }
+      />
 
-      {state.status === "loading" && <LoadingState label="Loading service…" />}
-      {state.status === "error" && <ErrorState message={describeApiError(state.error)} onRetry={retry} />}
-      {state.status === "ready" && (
-        <>
-          <h1>{state.data.service.name}</h1>
-          {state.data.service.description && <p className={styles.description}>{state.data.service.description}</p>}
-
-          <h2>Metrics</h2>
-          {state.data.metrics.length === 0 ? (
-            <EmptyState message="No metrics defined for this service." />
-          ) : (
-            <ul className={styles.metricList}>
-              {state.data.metrics.map((metric) => (
-                <li key={metric.id}>
-                  <span className={styles.metricName}>{metric.name}</span>{" "}
-                  <span className={styles.metricUnit}>({metric.unit})</span>
-                  {state.data.environments.length === 0 ? (
-                    <span className={styles.noEnv}> — no environment data yet</span>
-                  ) : (
-                    <span className={styles.envLinks}>
-                      {" — "}
-                      {state.data.environments.map((env, i) => (
-                        <span key={env.id}>
-                          <Link href={`/services/${serviceId}/metrics/${metric.id}?environment=${env.name}`}>{env.name}</Link>
-                          {i < state.data.environments.length - 1 ? " · " : ""}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+      <Panel title="Metrics" description="Pick a metric and an environment to open its chart, with deployments and the alert threshold overlaid.">
+        {metrics.length === 0 ? (
+          <EmptyState message="No metrics defined for this service." />
+        ) : (
+          <ul className={styles.metricList}>
+            {metrics.map((metric) => (
+              <li key={metric.id} className={styles.metric}>
+                <div className={styles.metricInfo}>
+                  <code className={styles.metricName}>{metric.name}</code>
+                  <span className={styles.metricUnit}>{metric.unit}</span>
+                </div>
+                {environments.length === 0 ? (
+                  <span className={styles.noEnv}>No environment data yet</span>
+                ) : (
+                  <span className={styles.envLinks}>
+                    {environments.map((env) => (
+                      <Link key={env.id} className={styles.envLink} href={`/services/${serviceId}/metrics/${metric.id}?environment=${env.name}`}>
+                        {env.name}
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    ))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
     </div>
   );
 }

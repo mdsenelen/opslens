@@ -1,0 +1,45 @@
+.link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.link:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.link[aria-current="page"] {
+  color: var(--text);
+}
+
+.link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -0.9rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+@media (max-width: 40rem) {
+  .link {
+    padding: 0 0.5rem;
+  }
+
+  .link[aria-current="page"]::after {
+    left: 0.5rem;
+    right: 0.5rem;
+  }
+}

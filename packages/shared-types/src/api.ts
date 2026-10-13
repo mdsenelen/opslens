@@ -48,7 +48,7 @@ export const metricPointsQuerySchema = timeRangeQuerySchema.extend({ environment
 
 export const alertListQuerySchema = paginationQuerySchema.extend({ serviceId: z.uuid().optional(), environment: environmentNameSchema.optional(), status: alertStatusSchema.optional(), severity: alertSeveritySchema.optional(), sort: z.enum(["firedAt", "status"]).default("firedAt"), order: z.enum(["asc", "desc"]).default("desc") });
 export const alertListItemSchema = alertSchema.extend({ severity: alertSeveritySchema, metricName: z.string(), serviceName: z.string(), environmentName: environmentNameSchema });
-export const alertDetailSchema = alertListItemSchema.extend({ rule: z.object({ comparator: z.enum(["gt", "gte", "lt", "lte"]), threshold: z.number(), durationSeconds: z.number().int().positive() }) });
+export const alertDetailSchema = alertListItemSchema.extend({ rule: z.object({ metricId: z.uuid(), comparator: z.enum(["gt", "gte", "lt", "lte"]), threshold: z.number(), durationSeconds: z.number().int().positive() }) });
 
 export const deploymentListQuerySchema = paginationQuerySchema.extend({ start: isoQuery.optional(), end: isoQuery.optional(), serviceId: z.uuid().optional(), environment: environmentNameSchema.optional(), status: deploymentStatusSchema.optional(), sort: z.literal("deployedAt").default("deployedAt"), order: z.enum(["asc", "desc"]).default("desc") }).superRefine((value, ctx) => {
   if ((value.start && !value.end) || (!value.start && value.end)) ctx.addIssue({ code: "custom", path: ["start"], message: "start and end must be provided together" });

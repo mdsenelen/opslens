@@ -61,7 +61,15 @@ export function DataTable<T extends { id: string }>({
         {rows.map((row) => (
           <tr key={row.id}>
             {columns.map((col, index) => (
-              <td key={col.key}>{getRowHref && index === 0 ? <Link href={getRowHref(row)}>{col.render(row)}</Link> : col.render(row)}</td>
+              <td key={col.key}>
+                {getRowHref && index === 0 ? (
+                  <Link href={getRowHref(row)} className={styles.rowLink}>
+                    {col.render(row)}
+                  </Link>
+                ) : (
+                  col.render(row)
+                )}
+              </td>
             ))}
           </tr>
         ))}
