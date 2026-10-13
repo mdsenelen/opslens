@@ -1,0 +1,30 @@
+# Render Blueprint for the OpsLens API (New > Blueprint in the Render
+# dashboard, pointed at this repo). The web app is on Vercel and the
+# database on Neon; see docs/deployment.md for the full walkthrough.
+services:
+  - type: web
+    name: opslens-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    # Same pnpm as CI and local development (pnpm-workspace.yaml uses
+    # pnpm 11 settings), installed explicitly rather than trusting
+    # whichever version the build image ships.
+    buildCommand: npm install -g pnpm@11.22.0 && pnpm install --frozen-lockfile
+    # Free instances have no pre-deploy step, so migrations and the
+    # bootstrap (reference rows and alert rules, never deletes anything)
+    # run on every start. Both are idempotent.
+    startCommand: pnpm --filter @opslens/api migrate:up && pnpm --filter @opslens/api bootstrap && pnpm --filter @opslens/api start
+    healthCheckPath: /api/ping
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SIMULATION_ENABLED
+        value: "true"
+      # Neon's connection string, including ?sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+      # The Vercel production URL, e.g. https://opslens.vercel.app (no
+      # trailing slash). The only origin the API's CORS allows.
+      - key: WEB_ORIGIN
+        sync: false
