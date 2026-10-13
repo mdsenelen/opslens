@@ -72,6 +72,20 @@ browser. SSE gives reconnection for free and needs no extra protocol.
 environment, filters, and time range all survive a refresh and can be
 pasted into a ticket.
 
+**Live data as a pure function of time.** The hosted demo writes its own
+data every minute (`SIMULATION_ENABLED=true`). Every value, deployment and
+incident is computed from the timestamp alone, and alerts still come only
+from the real evaluator reading those points. The free API host stops idle
+services, so being stateless is what makes that workable: on start, the API
+writes the exact minutes it missed and replays the evaluator over any
+incident in that gap. Rejected: re-running the seed on a schedule (the lines
+would move, but no alert would ever fire live); a random walk like the
+seed's (it needs the previous value, so a gap cannot be filled
+consistently); a separate ingestion endpoint and worker process (a second
+service to host and secure for a demo that has no real data source).
+Locally, and in the E2E suite, the simulation stays off and the seed's
+fixed scenario is unchanged.
+
 **CSS Modules and design tokens, no component library.** The visual layer is
 one token set in `globals.css` with a separate dark-mode block, and six small
 layout primitives (`PageHeader`, `Panel`, `StatTile`, `LiveIndicator`,
@@ -82,6 +96,12 @@ theme.
 
 Everything below comes from a run that actually happened. Method and machine
 are recorded in the linked reports.
+
+**Live simulation.** On an empty local database, the API's first tick
+wrote 24 hours of data (13,824 points and 40 deployments) and replayed 88
+evaluations, producing 16 resolved alerts for the 8 incidents in that
+window, 860 ms after start. An integration test fails if the replay is
+removed.
 
 **Performance** ([report](performance-report.md)).
 - The services environment filter does a full `metric_points` scan: 6.0 ms
@@ -121,6 +141,13 @@ are recorded in the linked reports.
   the demo showed "resolved". E2E never noticed, because the suite finishes
   inside that first minute. The alert is now seeded as acknowledged, which
   the evaluator by design never auto-resolves.
+- *Browser requests went to localhost.* The web app's API client read only
+  `OPSLENS_API_URL`, a variable Next.js never exposes to the browser, so
+  every client-side fetch fell back to `localhost:4000`. Locally the API
+  really is there, which hid it; deployed, every filter and refresh would
+  have called the visitor's own machine. It showed up as CORS errors when a
+  production build was pointed at an API on another port, before the first
+  deploy. A unit test now pins which URL each side uses.
 - *The "24h" chart showed 8 hours.* The client never passed `limit`, so
   the API's default of 500 points applied. The chart now requests the
   maximum and says so in text when a window is still larger than one
@@ -142,15 +169,16 @@ The spec is frozen as written, so these differences stay visible on purpose.
 
 ## Limits, stated plainly
 
-- **All data is seeded.** Nothing ingests real metrics. After seeding, the
-  time series stops growing, so the newest point gets older the longer the
-  API runs.
+- **All data is simulated.** Nothing ingests real metrics. The hosted demo
+  generates its data on a fixed schedule; a local seeded database stops
+  growing after the seed runs, unless the simulation is turned on.
 - **One request is 1,000 points.** At production's one-point-per-minute
   cadence, that is about 16 hours. Longer windows show their most recent
   part, with a notice. Server-side downsampling is the real fix and was not
   built.
-- **Single-process evaluator.** Alert evaluation is a `setInterval` in the
-  API process, with no coordination between instances.
+- **Single-process evaluator and simulation.** Both run on a `setInterval`
+  in the API process, with no coordination between instances. Two API
+  instances would write every simulated point twice.
 - **Read-mostly.** There is no write UI: alerts can't be acknowledged from
   the browser, and rules can't be edited.
 - **No auth**, by scope.
