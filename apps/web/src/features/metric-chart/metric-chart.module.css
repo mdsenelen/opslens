@@ -13,18 +13,20 @@
 .envChip {
   display: inline-flex;
   align-items: center;
-  height: 1.5rem;
-  padding: 0 0.6rem;
-  border-radius: 999px;
+  height: 1.375rem;
+  padding: 0 0.45rem;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: var(--radius-sm);
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .presets {
   display: inline-flex;
-  padding: 3px;
+  padding: 2px;
   gap: 2px;
   border-radius: var(--radius);
   background: var(--surface-muted);
@@ -35,7 +37,7 @@
   font: inherit;
   font-size: 0.85rem;
   font-weight: 500;
-  height: 1.9rem;
+  height: 1.75rem;
   min-width: 2.75rem;
   padding: 0 0.75rem;
   border-radius: var(--radius-sm);
@@ -53,13 +55,12 @@
 }
 
 /* Pressed state is carried by aria-pressed for assistive tech and by a
-   raised surface plus bolder weight visually, not by color alone. */
+   bordered surface plus bolder weight visually, not by color alone. */
 .presets button[aria-pressed="true"] {
   background: var(--surface);
   border-color: var(--border);
   color: var(--text);
-  font-weight: 650;
-  box-shadow: var(--shadow);
+  font-weight: 600;
 }
 
 .legend {
@@ -156,7 +157,8 @@
 }
 
 .version {
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-weight: 500;
 }
 
 .deployedAt {

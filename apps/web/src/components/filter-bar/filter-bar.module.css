@@ -21,16 +21,16 @@
 }
 
 .field label {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
 .field input,
 .field select {
   font: inherit;
-  height: 2.25rem;
-  padding: 0 0.75rem;
+  height: 2rem;
+  padding: 0 0.6rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
   background: var(--surface);

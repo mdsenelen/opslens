@@ -5,10 +5,10 @@
 }
 
 .filters {
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
 }
 
 .inset {
-  padding: 1.25rem;
+  padding: 1rem;
 }
