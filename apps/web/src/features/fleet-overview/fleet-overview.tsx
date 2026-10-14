@@ -76,10 +76,8 @@ export function FleetOverview({ initialData }: { initialData: ServiceListRespons
         </StatGroup>
       )}
 
-      <Panel
-        flush
-        title="Services"
-        actions={
+      <Panel flush title="Services">
+        <div className={styles.filters}>
           <FilterBar>
             <FilterField label="Search" htmlFor="fleet-search">
               <input
@@ -101,8 +99,7 @@ export function FleetOverview({ initialData }: { initialData: ServiceListRespons
               </select>
             </FilterField>
           </FilterBar>
-        }
-      >
+        </div>
         {state.status === "loading" && <LoadingState label="Loading services…" />}
         {state.status === "error" && (
           <div className={styles.inset}>
