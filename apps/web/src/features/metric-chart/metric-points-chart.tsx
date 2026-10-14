@@ -21,12 +21,12 @@ function readTheme(el: HTMLElement): ChartTheme {
   const css = getComputedStyle(el);
   const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
   return {
-    line: token("--chart-line", "#2448c9"),
-    fill: token("--chart-fill", "rgba(36,72,201,0.1)"),
-    grid: token("--chart-grid", "#eceef2"),
-    axis: token("--chart-axis", "#5f6876"),
-    deploy: token("--chart-deploy", "#855209"),
-    threshold: token("--chart-threshold", "#b42318"),
+    line: token("--chart-line", "#0b6b66"),
+    fill: token("--chart-fill", "rgba(11,107,102,0.08)"),
+    grid: token("--chart-grid", "#ededed"),
+    axis: token("--chart-axis", "#5c5c5c"),
+    deploy: token("--chart-deploy", "#8a4b0c"),
+    threshold: token("--chart-threshold", "#a8202a"),
     font: css.fontFamily || "system-ui, sans-serif",
   };
 }

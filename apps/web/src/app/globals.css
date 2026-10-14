@@ -1,50 +1,57 @@
 /* Design tokens. Every component module reads these instead of hard-coding
    colors, so light/dark mode is one block each, not a scattered set of
-   per-file media queries. Text tokens are chosen against both --bg and
-   --surface: --text-muted and --text-subtle each stay at or above 4.5:1
-   on either (checked with the automated axe scans in e2e/). */
+   per-file media queries. Text tokens are chosen against --bg, --surface,
+   --surface-muted and --sidebar: every foreground below stays at or above
+   4.5:1 on each of them (ratios worked out by hand when the palette was
+   chosen, then checked with the automated axe scans in e2e/).
+
+   The palette is deliberately neutral: true greys with no blue tint, one
+   teal accent for links and the current selection, and a separate blue for
+   the focus ring so focus never looks like "selected". Depth comes from
+   1px borders, not shadows. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-muted: #f1f3f6;
-  --border: #e3e6eb;
-  --border-strong: #cdd2da;
-  --text: #111827;
-  --text-muted: #4b5563;
-  --text-subtle: #5f6876;
+  --surface-muted: #f5f5f5;
+  --sidebar: #fafafa;
+  --border: #e3e3e3;
+  --border-strong: #c7c7c7;
+  --text: #1a1a1a;
+  --text-muted: #4a4a4a;
+  --text-subtle: #5c5c5c;
 
-  --accent: #2448c9;
-  --accent-hover: #1c3aa8;
-  --accent-soft: #e8edfc;
+  --accent: #0b6b66;
+  --accent-hover: #08524e;
+  --accent-soft: #e2f2f0;
   --accent-contrast: #ffffff;
-  /* #1f5ade on white is ~5.9:1; the same color on the dark-mode background
-     below drops to ~3.6:1, so dark mode gets its own lighter value instead
-     of reusing this one, see the dark-mode block. */
-  --focus-ring: #1f5ade;
+  /* ~5.1:1 on the lightest grey; dark mode gets its own lighter value. */
+  --focus-ring: #0067c7;
 
-  --danger-bg: #fdecec;
-  --danger-fg: #9b1c1c;
-  --warning-bg: #fdf3d8;
-  --warning-fg: #855209;
-  --success-bg: #e3f4ee;
-  --success-fg: #0b5e47;
-  --info-bg: #e8edfc;
-  --info-fg: #1f3d8a;
+  --danger-bg: #fcebec;
+  --danger-fg: #a8202a;
+  --warning-bg: #fbf0e4;
+  --warning-fg: #8a4b0c;
+  --success-bg: #e6f5eb;
+  --success-fg: #1a6a3a;
+  --info-bg: #e7f0fb;
+  --info-fg: #1d4e8f;
 
-  --chart-line: #2448c9;
-  --chart-fill: rgba(36, 72, 201, 0.1);
-  --chart-grid: #eceef2;
-  --chart-axis: #5f6876;
-  --chart-deploy: #855209;
-  --chart-threshold: #b42318;
+  --chart-line: #0b6b66;
+  --chart-fill: rgba(11, 107, 102, 0.08);
+  --chart-grid: #ededed;
+  --chart-axis: #5c5c5c;
+  --chart-deploy: #8a4b0c;
+  --chart-threshold: #a8202a;
 
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --shadow: none;
 
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --sidebar-width: 14rem;
+
+  --font-sans: var(--font-instrument-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   /* Kept as aliases so anything still reading the Phase 0 names resolves. */
   --background: var(--bg);
@@ -53,38 +60,37 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0d12;
-    --surface: #12151c;
-    --surface-muted: #181c25;
-    --border: #242a36;
-    --border-strong: #343b4a;
-    --text: #e7e9ee;
-    --text-muted: #a8b0c0;
-    --text-subtle: #959eb0;
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface-muted: #1c1c1c;
+    --sidebar: #111111;
+    --border: #2a2a2a;
+    --border-strong: #3d3d3d;
+    --text: #ededed;
+    --text-muted: #b5b5b5;
+    --text-subtle: #9c9c9c;
 
-    --accent: #8aa8ff;
-    --accent-hover: #a9bfff;
-    --accent-soft: #1a2442;
-    --accent-contrast: #0b0d12;
-    --focus-ring: #7aa2ff;
+    --accent: #5ccfc0;
+    --accent-hover: #8be3d7;
+    --accent-soft: #0e2826;
+    --accent-contrast: #0d0d0d;
+    --focus-ring: #6cb4ff;
 
-    --danger-bg: #3a1716;
-    --danger-fg: #f5aba3;
-    --warning-bg: #352a10;
-    --warning-fg: #f0c778;
-    --success-bg: #0e2e26;
-    --success-fg: #7fd6bd;
-    --info-bg: #182849;
-    --info-fg: #a9bdf0;
+    --danger-bg: #2e1214;
+    --danger-fg: #f4a7ab;
+    --warning-bg: #2b1f0c;
+    --warning-fg: #f0c27a;
+    --success-bg: #0f2618;
+    --success-fg: #7fd3a0;
+    --info-bg: #13213a;
+    --info-fg: #a3c4f3;
 
-    --chart-line: #8aa8ff;
-    --chart-fill: rgba(138, 168, 255, 0.12);
-    --chart-grid: #1f2430;
-    --chart-axis: #959eb0;
-    --chart-deploy: #f0c778;
-    --chart-threshold: #f5aba3;
-
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --chart-line: #5ccfc0;
+    --chart-fill: rgba(92, 207, 192, 0.1);
+    --chart-grid: #222222;
+    --chart-axis: #9c9c9c;
+    --chart-deploy: #f0c27a;
+    --chart-threshold: #f4a7ab;
   }
 
   html {
@@ -110,26 +116,24 @@ body {
 
 body {
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
   color: var(--text);
   background: var(--bg);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1 {
-  font-size: 1.75rem;
-  line-height: 1.2;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 h2 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.4;
   font-weight: 600;
 }
@@ -142,7 +146,7 @@ a {
 code,
 .mono {
   font-family: var(--font-mono);
-  font-size: 0.92em;
+  font-size: 0.9em;
 }
 
 /* Baseline visible focus indicator for every interactive element that
@@ -157,7 +161,7 @@ summary:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .srOnly {
