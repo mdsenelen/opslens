@@ -145,3 +145,43 @@ accessibility spec now runs its four flows once per scheme
 The 390px scans are a one-off check from this phase and are not part of CI.
 The same limits as above still apply: no screen-reader session was run, and
 nothing here is a conformance claim.
+
+## After Phase 9: the dashboard redesign
+
+A second visual pass replaced the token values (blue-tinted greys and a
+blue accent became neutral greys and a teal accent, shadows became 1px
+borders, Geist became Instrument Sans and IBM Plex Mono) and moved the
+primary navigation from a top bar into a left sidebar that folds back into
+a top bar below 52rem. Every color changed again, so contrast was checked
+again rather than carried over.
+
+**What changed for accessibility:**
+
+- Contrast was computed for each new text and status color against each
+  background it sits on (`--bg`, `--surface`, `--surface-muted` and the
+  sidebar) in both themes before the palette was committed. The lowest
+  ratio was 5.12:1, the light-mode focus ring on `--surface-muted`.
+- The focus ring is now a blue separate from the teal accent, so a focused
+  control never looks like a selected one.
+- `NavLink` still sets `aria-current="page"`. Its visual signal is now a
+  filled row, heavier weight and a 2px accent bar on the leading edge,
+  replacing the underline described above.
+- The time-range presets' pressed state is shown by a bordered surface and
+  heavier weight (the redesign removed shadows, so "raised" no longer
+  applies). `aria-pressed` is unchanged.
+- Status badges became outlined chips and keep their icon and word, so
+  severity and status are still not carried by color.
+- The sidebar and the folded top bar use the same `header` and `nav`
+  landmarks, and the skip link is still the first Tab stop.
+
+**What was run, and the result:**
+
+| Command | Result |
+|---|---|
+| `pnpm -r lint` / `pnpm -r typecheck` / `pnpm -r test` | pass (web: 11 files, 47 tests; api: 5 files, 19 tests) |
+| `pnpm --filter @opslens/web build` | pass |
+| `pnpm --filter @opslens/web exec playwright test`, local dev server, freshly seeded database | pass (11 tests, including 8 axe flows: 4 per color scheme, and the keyboard-only journey) |
+
+Not run for this pass: the API integration suite (no API code changed) and
+the one-off 390px axe scans. Phone width was checked by eye only. The same
+limits apply: no screen-reader session, and no conformance claim.
