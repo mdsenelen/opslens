@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import { NavLink } from "@/components/nav-link/nav-link";
 import "./globals.css";
 import styles from "./layout.module.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Not a variable font, so the weights the app actually uses are listed.
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${instrumentSans.variable} ${plexMono.variable}`}>
       <body>
         {/* Visually hidden until focused — the first Tab stop on every page,
             per docs/spec/11-accessibility.md's keyboard-operability
@@ -30,32 +32,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main-content" className={styles.skipLink}>
           Skip to main content
         </a>
-        <header className={styles.header}>
-          <nav className={styles.nav} aria-label="Primary">
+        <div className={styles.shell}>
+          {/* A left sidebar on wide screens, a top bar on narrow ones; the
+              same <header>/<nav> landmarks either way. */}
+          <header className={styles.sidebar}>
             <Link href="/" className={styles.brand}>
               {/* Decorative: the link's accessible name is the word next to it. */}
-              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" className={styles.logo}>
-                <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
-                <path d="M5 14h3l2-5 3 9 2-6 1.5 2H19" stroke="var(--surface)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" className={styles.logo}>
+                <rect x="1" y="1" width="22" height="22" rx="3" fill="currentColor" />
+                <path d="M5 14h3l2-5 3 9 2-6 1.5 2H19" stroke="var(--accent-contrast)" strokeWidth="1.8" strokeLinecap="square" strokeLinejoin="miter" />
               </svg>
               OpsLens
             </Link>
-            <div className={styles.links}>
+            <nav className={styles.nav} aria-label="Primary">
               <NavLink href="/" alsoMatches={["/services"]}>
                 Fleet
               </NavLink>
               <NavLink href="/alerts">Alerts</NavLink>
               <NavLink href="/deployments">Deployments</NavLink>
-            </div>
-          </nav>
-        </header>
-        {/* tabIndex={-1}: a plain <main> isn't natively focusable, so
-            without it the skip link above would move the URL hash but not
-            actually move keyboard focus. Not added to the normal Tab
-            order; only reachable via the skip link's programmatic focus(). */}
-        <main id="main-content" tabIndex={-1} className={styles.main}>
-          {children}
-        </main>
+            </nav>
+          </header>
+          {/* tabIndex={-1}: a plain <main> isn't natively focusable, so
+              without it the skip link above would move the URL hash but not
+              actually move keyboard focus. Not added to the normal Tab
+              order; only reachable via the skip link's programmatic focus(). */}
+          <main id="main-content" tabIndex={-1} className={styles.main}>
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

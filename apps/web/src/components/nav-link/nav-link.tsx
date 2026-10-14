@@ -7,7 +7,7 @@ import styles from "./nav-link.module.css";
 
 /**
  * A primary-nav link that marks itself as the current section. aria-current
- * carries the state for assistive tech; the underline carries it visually,
+ * carries the state for assistive tech; the filled row and accent bar carry it visually,
  * so the active item is not signalled by color alone. A link matches its
  * own path and anything nested under it ("/alerts/123" keeps "Alerts"
  * current), except "/", which only matches itself. `alsoMatches` lets a
