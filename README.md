@@ -31,6 +31,7 @@ limits, about five minutes) · the [planning blueprint](docs/spec/00-overview.md
 | 7 | Accessibility pass with automated keyboard and axe checks ([report](docs/accessibility-report.md)) |
 | 9 | Visual design system, demo-path fixes, [case study](docs/case-study.md) |
 | After 9 | Live simulated data, live chart ranges, hosting config ([deployment guide](docs/deployment.md)) |
+| After 9 | Dashboard redesign: neutral palette, flat bordered surfaces, left sidebar navigation ([accessibility re-check](docs/accessibility-report.md#after-phase-9-the-dashboard-redesign)) |
 
 ## Stack
 
