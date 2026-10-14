@@ -1,12 +1,12 @@
 .link {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   height: 2rem;
-  padding: 0 0.75rem;
+  padding: 0 0.5rem;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition:
     background-color 0.12s ease,
@@ -18,28 +18,31 @@
   background: var(--surface-muted);
 }
 
+/* Current section: filled row, stronger text and an accent bar on the
+   leading edge, so it isn't carried by color alone. */
 .link[aria-current="page"] {
   color: var(--text);
+  font-weight: 600;
+  background: var(--surface-muted);
 }
 
-.link[aria-current="page"]::after {
+.link[aria-current="page"]::before {
   content: "";
   position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: -0.9rem;
-  height: 2px;
-  border-radius: 2px;
+  left: 0;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
   background: var(--accent);
 }
 
-@media (max-width: 40rem) {
-  .link {
-    padding: 0 0.5rem;
-  }
-
-  .link[aria-current="page"]::after {
+@media (max-width: 52rem) {
+  .link[aria-current="page"]::before {
     left: 0.5rem;
     right: 0.5rem;
+    top: auto;
+    bottom: 0.15rem;
+    width: auto;
+    height: 2px;
   }
 }

@@ -32,32 +32,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main-content" className={styles.skipLink}>
           Skip to main content
         </a>
-        <header className={styles.header}>
-          <nav className={styles.nav} aria-label="Primary">
+        <div className={styles.shell}>
+          {/* A left sidebar on wide screens, a top bar on narrow ones; the
+              same <header>/<nav> landmarks either way. */}
+          <header className={styles.sidebar}>
             <Link href="/" className={styles.brand}>
               {/* Decorative: the link's accessible name is the word next to it. */}
-              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" className={styles.logo}>
-                <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
-                <path d="M5 14h3l2-5 3 9 2-6 1.5 2H19" stroke="var(--surface)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" className={styles.logo}>
+                <rect x="1" y="1" width="22" height="22" rx="3" fill="currentColor" />
+                <path d="M5 14h3l2-5 3 9 2-6 1.5 2H19" stroke="var(--accent-contrast)" strokeWidth="1.8" strokeLinecap="square" strokeLinejoin="miter" />
               </svg>
               OpsLens
             </Link>
-            <div className={styles.links}>
+            <nav className={styles.nav} aria-label="Primary">
               <NavLink href="/" alsoMatches={["/services"]}>
                 Fleet
               </NavLink>
               <NavLink href="/alerts">Alerts</NavLink>
               <NavLink href="/deployments">Deployments</NavLink>
-            </div>
-          </nav>
-        </header>
-        {/* tabIndex={-1}: a plain <main> isn't natively focusable, so
-            without it the skip link above would move the URL hash but not
-            actually move keyboard focus. Not added to the normal Tab
-            order; only reachable via the skip link's programmatic focus(). */}
-        <main id="main-content" tabIndex={-1} className={styles.main}>
-          {children}
-        </main>
+            </nav>
+          </header>
+          {/* tabIndex={-1}: a plain <main> isn't natively focusable, so
+              without it the skip link above would move the URL hash but not
+              actually move keyboard focus. Not added to the normal Tab
+              order; only reachable via the skip link's programmatic focus(). */}
+          <main id="main-content" tabIndex={-1} className={styles.main}>
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
