@@ -15,7 +15,8 @@
     "migrate:down": "node-pg-migrate down -m src/infra/db/migrations",
     "migrate:create": "node-pg-migrate create -m src/infra/db/migrations -j ts",
     "seed": "tsx src/infra/db/seed.ts",
-    "bootstrap": "tsx src/infra/db/bootstrap.ts"
+    "bootstrap": "tsx src/infra/db/bootstrap.ts",
+    "bench:alert-evaluator": "tsx src/bench/bench-alert-evaluator.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

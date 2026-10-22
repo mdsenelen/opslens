@@ -56,6 +56,67 @@ window via the composite index, but still costs more as the table grows
 overall). Per the spec: watch it, don't pre-optimize it. Worth re-baselining
 if the real seed's data volume assumptions change.
 
+### 2a. Re-measured with a repeatable benchmark (2026-10-22)
+
+The 608.7 ms above is a single timed call, and the SQL that built its 100x
+dataset was not recorded (only `SELECT ... generate_series(...)`), so it
+cannot be reproduced. It is left as written. This is the repeatable
+replacement.
+
+**Method:** `pnpm --filter @opslens/api bench:alert-evaluator`
+([`apps/api/src/bench/bench-alert-evaluator.ts`](../apps/api/src/bench/bench-alert-evaluator.ts)).
+It creates a throwaway database, runs the normal `migrate:up` and `seed`,
+then copies every metric point 99 more times with this exact statement:
+
+```sql
+INSERT INTO metric_points (metric_id, environment_id, ts, value)
+SELECT mp.metric_id, mp.environment_id, mp.ts - g * span.width, mp.value
+FROM metric_points mp,
+     generate_series(1, 99) AS g,
+     (SELECT max(ts) - min(ts) + interval '1 minute' AS width FROM metric_points) AS span;
+```
+
+Each copy is moved back by the seed's whole time span, so the evaluator's
+trailing windows contain exactly the seeded points and the extra rows are
+older history. Then `VACUUM ANALYZE`, 3 untimed warm-up calls, and 30 timed
+calls of the real `runAlertEvaluation`, all at the same `evaluatedAt` (the
+newest seeded point). The alerts table is restored to its seeded state
+before every call, outside the timed region. The scratch database is dropped
+at the end.
+
+**Machine:** Apple M1 Pro, 10 cores, 16 GB, macOS (Darwin 25.5.0), Node
+v26.7.0, PostgreSQL 16.15 (Homebrew), on the same machine as the client.
+
+**Dataset:** 1,384,000 `metric_points` (seed x 100), 8 enabled rules. Every
+timed call made 0 alert transitions (the 608.7 ms run made 1).
+
+| Run | Copies | min | median | p95 | max | median vs 60 s |
+|---|---|---|---|---|---|---|
+| 1 | shifted into history | 156.5 ms | **165.4 ms** | 183.7 ms | 204.7 ms | 0.28% |
+| 2 | shifted into history | 157.6 ms | **173.2 ms** | 201.7 ms | 211.4 ms | 0.29% |
+| 3 | same timestamps (`BENCH_COPIES=same-ts`) | 70.2 ms | 87.6 ms | 109.5 ms | 110.6 ms | 0.15% |
+
+Runs 1 and 2 are the measurement. Run 3 only brackets the unknown method:
+if the original copies kept their timestamps, the evaluator gets faster, not
+slower, so neither method reproduces 608.7 ms on this machine today. The
+earlier figure was likely a cold, first call; that was not verified.
+
+**Where the time goes:** mostly in the per-rule
+`SELECT DISTINCT environment_id FROM metric_points WHERE metric_id = $1`.
+`EXPLAIN ANALYZE` on the 100x data shows a parallel index-only scan over
+that metric's whole history (about 173,000 index entries, 49.1 ms for one
+rule), not just the evaluation window. With same-timestamp copies the
+index holds 100 identical keys per point, which B-tree deduplication
+compacts, and the same scan takes 21.4 ms. That is why run 3 is faster.
+So the evaluator's cost grows with total stored history, not with the
+window size.
+
+**Conclusion:** at 100x the seeded data, one evaluation takes about 165 to
+173 ms median, under 0.3% of its 60 s budget. No change made. If history
+retention ever grows far beyond this, the first fix is to take the
+environment list from somewhere smaller than `metric_points` (the same
+direction as measurement 1), not a new index.
+
 ## 3. React render behavior on the metric-points chart — now a regression test, not a one-off profile
 
 The spec asked to verify (via React DevTools profiling) that a new point
