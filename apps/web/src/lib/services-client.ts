@@ -2,7 +2,7 @@ import {
   paginatedSchema,
   serviceDetailSchema,
   serviceListItemSchema,
-  type EnvironmentName,
+  serviceListQuerySchema,
 } from "@opslens/shared-types";
 import type { z } from "zod";
 import { fetchApi, toQueryString, type ApiError } from "./api-client";
@@ -10,14 +10,10 @@ import { fetchApi, toQueryString, type ApiError } from "./api-client";
 export type ServiceListItem = z.infer<typeof serviceListItemSchema>;
 export type ServiceDetail = z.infer<typeof serviceDetailSchema>;
 
-export type ServiceListQuery = {
-  q?: string;
-  environment?: EnvironmentName;
-  page?: number;
-  limit?: number;
-  sort?: "name" | "createdAt";
-  order?: "asc" | "desc";
-};
+// Derived from the API's own query schema (output side, so defaults are
+// optional here and numbers stay numbers), not hand-copied: a new filter or
+// sort key there reaches this type without a second edit.
+export type ServiceListQuery = Partial<z.output<typeof serviceListQuerySchema>>;
 
 const serviceListResponseSchema = paginatedSchema(serviceListItemSchema);
 export type ServiceListResponse = z.infer<typeof serviceListResponseSchema>;

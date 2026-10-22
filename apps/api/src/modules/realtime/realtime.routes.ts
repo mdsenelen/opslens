@@ -1,5 +1,6 @@
-import type { RealtimeEvent } from "@opslens/shared-types";
+import { realtimeStreamQuerySchema, type RealtimeEvent } from "@opslens/shared-types";
 import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { getWebOrigin } from "../../infra/web-origin";
 import type { EventBroadcaster } from "./event-broadcaster";
 
@@ -10,8 +11,10 @@ import type { EventBroadcaster } from "./event-broadcaster";
  * to receive every alert-status event (the unfiltered alerts-list screen).
  */
 export async function registerRealtimeRoutes(app: FastifyInstance, broadcaster: EventBroadcaster) {
-  app.get("/realtime/stream", (request, reply) => {
-    const { serviceId } = request.query as { serviceId?: string };
+  // Validation runs before the handler, so a bad serviceId still gets the
+  // normal 400 envelope (and @fastify/cors) instead of a hijacked stream.
+  app.withTypeProvider<ZodTypeProvider>().get("/realtime/stream", { schema: { querystring: realtimeStreamQuerySchema } }, (request, reply) => {
+    const { serviceId } = request.query;
 
     // Long-lived response written directly to the socket — tell Fastify
     // not to attempt its own reply lifecycle on top of this. That also

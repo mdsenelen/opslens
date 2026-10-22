@@ -1,6 +1,8 @@
 import http from "node:http";
 import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { afterEach, describe, expect, it } from "vitest";
+import { buildApp } from "../../app";
 import { EventBroadcaster } from "./event-broadcaster";
 import { registerRealtimeRoutes } from "./realtime.routes";
 
@@ -19,6 +21,8 @@ import { registerRealtimeRoutes } from "./realtime.routes";
  */
 async function buildRealtimeOnlyApp() {
   const app = Fastify();
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
   await registerRealtimeRoutes(app, new EventBroadcaster());
   await app.listen({ port: 0, host: "127.0.0.1" });
   const address = app.server.address();
@@ -60,6 +64,21 @@ describe("GET /realtime/stream CORS header", () => {
     try {
       const headers = await getHeaders(port);
       expect(headers["access-control-allow-origin"]).toBe("https://ops.example.com");
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+// Validation fails before the handler hijacks the reply, so inject() can
+// see this response: it is a normal, finished 400.
+describe("GET /realtime/stream query validation", () => {
+  it("rejects a serviceId that is not a UUID with the shared error envelope", async () => {
+    const app = buildApp({ db: { query: async () => { throw new Error("no database in this test"); } } as never });
+    try {
+      const response = await app.inject({ method: "GET", url: "/api/realtime/stream?serviceId=not-a-uuid" });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe("VALIDATION_ERROR");
     } finally {
       await app.close();
     }
