@@ -186,6 +186,16 @@ likely source of the difference, but that attribution was not verified.
 Totals are uncompressed response bodies, not transfer sizes, so do not read
 them as network cost.
 
+**Re-measured again (2026-10-22).** Same method: `pnpm --filter
+@opslens/web build`, `next start` against the seeded API, Playwright
+Chromium visiting all six routes and recording every script response body.
+The uPlot chunk (`2cmqve2l3gdl3.js`, the only built chunk containing
+uPlot's `u-legend`/`u-over` internals) is **60,293 bytes** uncompressed
+(25,246 bytes at `gzip -9`) and loaded on `/services/[serviceId]/metrics/[metricId]`
+only, none of the other five routes. History of this one chunk: 55.6 KB
+(measurement 4), 58.5 KB (above), 60.3 KB (60,293 bytes) now. The earlier
+two did not record whether KB meant 1,000 or 1,024 bytes.
+
 **A correctness finding, not a speed one.** The chart never passed `limit`
 to `GET /metrics/:metricId/points`, so the API's default of 500 points
 applied. At production's seeded cadence of one point per minute, that is
