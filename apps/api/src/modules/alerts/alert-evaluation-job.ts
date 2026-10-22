@@ -53,10 +53,16 @@ export async function runAlertEvaluation(db: Database, evaluatedAt = new Date(),
         }
       }
       if(!firing && open.rows[0]?.status === "firing") {
-        const updated = await db.query<Record<string, unknown>>("UPDATE alerts SET status='resolved',resolved_at=$1 WHERE id=$2 RETURNING *",[evaluatedAt.toISOString(),open.rows[0].id]);
-        changes++;
+        // The status guard makes the database pick one winner when two
+        // evaluations both read this alert as firing: the loser updates zero
+        // rows, so it neither counts a change nor publishes a second
+        // "resolved" event with an overwritten resolved_at.
+        const updated = await db.query<Record<string, unknown>>("UPDATE alerts SET status='resolved',resolved_at=$1 WHERE id=$2 AND status='firing' RETURNING *",[evaluatedAt.toISOString(),open.rows[0].id]);
         const row = updated.rows[0];
-        if (row && onAlertChange) onAlertChange(mapAlertRow(row));
+        if (row) {
+          changes++;
+          onAlertChange?.(mapAlertRow(row));
+        }
       }
     }
   } return changes;
