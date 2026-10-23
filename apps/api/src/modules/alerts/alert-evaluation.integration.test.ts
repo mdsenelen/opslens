@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import type { Database } from "../../infra/db/pool";
 import { createTestDatabase, truncateAll } from "../../infra/db/test-db";
 import { runAlertEvaluation } from "./alert-evaluation-job";
 
@@ -126,5 +127,73 @@ describe("runAlertEvaluation against a real database", () => {
     await runAlertEvaluation(db, resolvedAt, (alert) => changes.push(alert.status));
 
     expect(changes).toEqual(["firing", "resolved"]);
+  });
+
+  // Overlapping runs (two instances during a deploy, or a replay racing the
+  // regular tick) each read the open alert before either writes. Only the
+  // database can pick a winner, so these run two real evaluations at once
+  // instead of trusting the in-process tickRunning guard in server.ts, which
+  // can't see another process. Plain Promise.all is not enough: the second
+  // run waits on the pool opening a new connection and the first one
+  // finishes before it reads anything, so the race never happens.
+  // overlappingRuns holds each run's write until both have done their reads.
+  function overlappingRuns(writePrefix: string): [Database, Database] {
+    let arrived = 0;
+    let release!: () => void;
+    const bothArrived = new Promise<void>((resolve) => (release = resolve));
+    const wrap = (): Database => ({
+      query: (async (sql: string, args?: unknown[]) => {
+        if (sql.startsWith(writePrefix)) {
+          arrived += 1;
+          if (arrived === 2) release();
+          await bothArrived;
+        }
+        return db.query(sql, args);
+      }) as Database["query"],
+    });
+    return [wrap(), wrap()];
+  }
+
+  it("opens exactly one alert when two evaluations overlap", async () => {
+    const evaluatedAt = new Date();
+    await seedFiringScenario(evaluatedAt);
+    const changes: string[] = [];
+
+    const [first, second] = overlappingRuns("INSERT INTO alerts");
+    const results = await Promise.all([
+      runAlertEvaluation(first, evaluatedAt, (alert) => changes.push(alert.status)),
+      runAlertEvaluation(second, evaluatedAt, (alert) => changes.push(alert.status)),
+    ]);
+
+    expect(results[0] + results[1]).toBe(1);
+    expect(changes).toEqual(["firing"]);
+    const { rows } = await db.query<{ count: string }>("SELECT count(*)::text FROM alerts WHERE status IN ('firing', 'acknowledged')");
+    expect(Number(rows[0]!.count)).toBe(1);
+  });
+
+  it("resolves exactly once when two evaluations overlap", async () => {
+    const evaluatedAt = new Date();
+    const { metricId, environmentId } = await seedFiringScenario(evaluatedAt);
+    await runAlertEvaluation(db, evaluatedAt);
+
+    await db.query("DELETE FROM metric_points WHERE metric_id = $1", [metricId]);
+    const resolvedAt = new Date(evaluatedAt.getTime() + 1000);
+    await db.query("INSERT INTO metric_points (metric_id, environment_id, ts, value) VALUES ($1, $2, $3, 0.5)", [
+      metricId,
+      environmentId,
+      resolvedAt.toISOString(),
+    ]);
+    const changes: string[] = [];
+
+    const [first, second] = overlappingRuns("UPDATE alerts");
+    const results = await Promise.all([
+      runAlertEvaluation(first, resolvedAt, (alert) => changes.push(alert.status)),
+      runAlertEvaluation(second, resolvedAt, (alert) => changes.push(alert.status)),
+    ]);
+
+    expect(results[0] + results[1]).toBe(1);
+    expect(changes).toEqual(["resolved"]);
+    const { rows } = await db.query<{ status: string }>("SELECT status FROM alerts");
+    expect(rows.map((row) => row.status)).toEqual(["resolved"]);
   });
 });

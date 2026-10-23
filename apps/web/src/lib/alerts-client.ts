@@ -1,10 +1,8 @@
 import {
   alertDetailSchema,
   alertListItemSchema,
+  alertListQuerySchema,
   paginatedSchema,
-  type AlertSeverity,
-  type AlertStatus,
-  type EnvironmentName,
 } from "@opslens/shared-types";
 import type { z } from "zod";
 import { fetchApi, toQueryString, type ApiError } from "./api-client";
@@ -12,16 +10,10 @@ import { fetchApi, toQueryString, type ApiError } from "./api-client";
 export type AlertListItem = z.infer<typeof alertListItemSchema>;
 export type AlertDetail = z.infer<typeof alertDetailSchema>;
 
-export type AlertListQuery = {
-  serviceId?: string;
-  environment?: EnvironmentName;
-  status?: AlertStatus;
-  severity?: AlertSeverity;
-  page?: number;
-  limit?: number;
-  sort?: "firedAt" | "status";
-  order?: "asc" | "desc";
-};
+// Derived from the API's own query schema (output side, so defaults are
+// optional here and numbers stay numbers), not hand-copied: a new filter or
+// sort key there reaches this type without a second edit.
+export type AlertListQuery = Partial<z.output<typeof alertListQuerySchema>>;
 
 const alertListResponseSchema = paginatedSchema(alertListItemSchema);
 export type AlertListResponse = z.infer<typeof alertListResponseSchema>;

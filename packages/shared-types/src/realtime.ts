@@ -12,6 +12,10 @@ import { metricPointSchema } from "./metric-point";
  * of metric_points. Don't wire a client to expect this event until a real
  * producer exists.
  */
+/** Query for GET /api/realtime/stream: omit serviceId to receive every service's events. */
+export const realtimeStreamQuerySchema = z.object({ serviceId: z.uuid().optional() });
+export type RealtimeStreamQuery = z.infer<typeof realtimeStreamQuerySchema>;
+
 export const realtimeAlertStatusEventSchema = z.object({
   type: z.literal("alert-status"),
   alert: alertSchema,

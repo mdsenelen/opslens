@@ -7,3 +7,6 @@ dist/
 .env.local
 .DS_Store
 coverage/
+
+# Local Claude Code settings and skills
+.claude/
