@@ -41,6 +41,56 @@ fleet size is ever deliberately grown well past this, re-run this same
 membership against a smaller table, not an index on `metric_points`
 itself) are exactly what this measurement would justify reaching for.
 
+### 1a. Re-measured on the benchmark dataset (2026-10-23)
+
+The table above is left as written. Like 608.7 ms in measurement 2, the SQL
+that duplicated its rows was not recorded, and it does not say which of the
+route's two statements was explained. This re-run uses the same dataset as
+the alert evaluator benchmark in 2a, so both measurements describe the same
+rows.
+
+**Method:** `pnpm --filter @opslens/api bench:services-environment`
+([`apps/api/src/bench/bench-services-environment.ts`](../apps/api/src/bench/bench-services-environment.ts)).
+For each scale (1x, 10x, 100x) it builds the dataset with the shared
+[`scaled-dataset.ts`](../apps/api/src/bench/scaled-dataset.ts) (the same
+migrate, seed, history-shifted copy and `VACUUM ANALYZE` steps as 2a), then
+sends a real `GET /api/services?environment=production` through
+`buildApp()` with a database wrapper that records every query and its
+arguments. The SQL is therefore the route's own, not a copy. The route
+sends two statements, a `count(*)` for `total` and the paged select, and
+both contain the `EXISTS` subquery. Each is run under
+`EXPLAIN (ANALYZE, FORMAT JSON)` 5 times with no warm-up, and the median
+`Execution Time` is reported. The scratch database is dropped at the end.
+
+**Machine:** Apple M1 Pro, 10 cores, 16 GB, macOS (Darwin 25.5.0), Node
+v26.7.0, PostgreSQL 16.15 (Homebrew), same machine as the client.
+
+| `metric_points` rows | Earlier figure (above) | count, median of 5 | select, median of 5 | select plan shape |
+|---|---|---|---|---|
+| 13,840 (seed x 1) | 6.0 ms | **6.7 ms** | **6.7 ms** | `Seq Scan on metric_points`, nested loops |
+| 138,400 (seed x 10) | 64.7 ms | **35.4 ms** | **55.7 ms** | `Seq Scan on metric_points`, nested loop into `metrics` |
+| 1,384,000 (seed x 100) | 223.5 ms | **161.4 ms** | **216.3 ms** | `Gather Merge` (2 workers), `Memoize` on the `metrics` lookups |
+
+Individual runs, in ms. 1x count: 5.7, 6.9, 6.7, 6.4, 11.1; select: 7.1,
+6.8, 6.7, 6.3, 6.3. 10x count: 35.4, 36.3, 36.3, 34.8, 34.3; select: 55.6,
+66.6, 55.8, 54.8, 55.7. 100x count: 161.4, 188.3, 161.1, 160.6, 161.7;
+select: 217.3, 217.8, 213.2, 216.2, 216.3.
+
+**Reading it:** the select lands close to the earlier figures (6.7 against
+6.0, 55.7 against 64.7, 216.3 against 223.5 ms), and the 100x plan has the
+same parallel workers and `Memoize` node described above. That suggests the
+earlier table measured the select, but it is an inference, not something
+recorded. The new finding is that one request runs the `EXISTS` scan twice,
+once per statement, so a request at 100x spends about 378 ms in the
+database (161.4 + 216.3), not about 220 ms. How the copies are timestamped
+should not matter here, because `EXISTS` scans every row whatever its age;
+only the history mode was run.
+
+**Conclusion:** unchanged. At the real seed, each statement takes under 7 ms,
+so no change was made. If the fleet grows, the fix named above (check
+environment membership against a smaller table than `metric_points`) would
+fix both statements at once, since they share the same `WHERE` clause.
+
 ## 2. Alert evaluation cycle wall-clock time
 
 **Method:** timed one `runAlertEvaluation` call directly (`performance.now()`
